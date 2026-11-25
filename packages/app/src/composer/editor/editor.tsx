@@ -90,6 +90,8 @@ export type ComposerEditorProps = {
   readOnly?: boolean
   borderUnderlay?: boolean
   class?: string
+  actions?: JSX.Element
+  suppressEmptySubmit?: boolean
   modelControl?: JSX.Element
   modelControlsVisible?: boolean
   attachKeybind?: string[]
@@ -460,7 +462,14 @@ export function ComposerEditor(props: ComposerEditorProps) {
           </div>
         </div>
 
-        <div class="flex h-11 shrink-0 items-center px-2" classList={{ hidden: touch() && mode() === "shell" }}>
+        <div
+          class="flex shrink-0 items-center px-2"
+          classList={{
+            "h-12": !!props.suppressEmptySubmit,
+            "h-11": !props.suppressEmptySubmit,
+            hidden: touch() && mode() === "shell",
+          }}
+        >
           <Show when={!touch()}>
             <div
               class="flex shrink-0 items-center"
@@ -569,25 +578,28 @@ export function ComposerEditor(props: ComposerEditorProps) {
                   </span>
                 </Button>
               </Show>
-              <ComposerEditorSubmitButton
-                mode={mode()}
-                stopping={view.submit.stopping()}
-                busy={view.submit.busy?.() ?? false}
-                disabled={!props.controller.canSubmit()}
-                sendLabel={i18n.t("ui.promptInput.send")}
-                stopLabel={i18n.t("ui.promptInput.stop")}
-                onSubmit={() => props.controller.submit()}
-                onStop={props.controller.stop}
-              />
+              <Show when={mode() === "normal"}>{props.actions}</Show>
+              <Show when={!props.suppressEmptySubmit || props.controller.canSubmit() || view.submit.stopping()}>
+                <ComposerEditorSubmitButton
+                  mode={mode()}
+                  stopping={view.submit.stopping()}
+                  busy={view.submit.busy?.() ?? false}
+                  disabled={!props.controller.canSubmit()}
+                  sendLabel={i18n.t("ui.promptInput.send")}
+                  stopLabel={i18n.t("ui.promptInput.stop")}
+                  onSubmit={() => props.controller.submit()}
+                  onStop={props.controller.stop}
+                />
+              </Show>
             </div>
           </Show>
         </div>
       </form>
       <Show when={touch()}>
-        <Show when={dock()} fallback={<ComposerEditorTouchBar controller={props.controller} />}>
+        <Show when={dock()} fallback={<ComposerEditorTouchBar actions={props.actions} controller={props.controller} />}>
           {(mount) => (
             <Portal mount={mount()}>
-              <ComposerEditorTouchBar controller={props.controller} docked />
+              <ComposerEditorTouchBar actions={props.actions} controller={props.controller} docked />
             </Portal>
           )}
         </Show>
@@ -1597,7 +1609,7 @@ function ComposerEditorSubmitButton(props: {
 // The composer's actions on a touch device, where Return only adds a line: this bar is the one way to send, steer,
 // queue or stop, and every target is at least 44px. Docked, it spans the bottom of the shell, which is the top of the
 // keyboard while one is open. Buttons keep the editor focused so the keyboard stays open.
-function ComposerEditorTouchBar(props: { controller: ComposerEditorModel; docked?: boolean }) {
+function ComposerEditorTouchBar(props: { actions?: JSX.Element; controller: ComposerEditorModel; docked?: boolean }) {
   const i18n = useI18n()
   const view = props.controller.view
   const keep = (event: MouseEvent) => event.preventDefault()
@@ -1648,6 +1660,7 @@ function ComposerEditorTouchBar(props: { controller: ComposerEditorModel; docked
           !!props.docked,
       }}
     >
+      <Show when={props.controller.mode() === "normal"}>{props.actions}</Show>
       <Show
         when={props.controller.mode() === "normal"}
         fallback={

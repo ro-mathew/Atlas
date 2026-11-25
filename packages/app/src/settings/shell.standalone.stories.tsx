@@ -53,6 +53,10 @@ export const Models = {
   render: () => <SettingsStory tab="models" />,
 }
 
+export const Voice = {
+  render: () => <SettingsStory tab="voice" />,
+}
+
 export const Plugins = {
   render: () => <SettingsStory tab="extensions" subtab="plugins" />,
 }

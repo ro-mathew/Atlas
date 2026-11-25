@@ -9,6 +9,7 @@ import type { LocalProject } from "@/shell/state/layout"
 import { DialogServer } from "@/servers/connect/dialog"
 import { LocationProvider } from "@/workspaces/location"
 import { SettingsGeneral } from "./general/general"
+import { SettingsVoice } from "./voice/voice"
 import { SettingsAppearance } from "./appearance/appearance"
 import { experimentalSettingsAvailable, SettingsExperimental } from "./experimental/experimental"
 import { SettingsKeybinds } from "./keybinds/keybinds"
@@ -38,6 +39,7 @@ import "@/settings/settings.css"
 const rootClientTabs = [
   { value: "general", icon: pageIcons.general, label: "settings.tab.preferences" },
   { value: "appearance", icon: pageIcons.appearance, label: "settings.general.section.appearance" },
+  { value: "voice", icon: pageIcons.voice, label: "settings.voice.title" },
   { value: "notifications", icon: pageIcons.notifications, label: "settings.tab.notifications" },
   { value: "shortcuts", icon: pageIcons.shortcuts, label: "settings.tab.shortcuts" },
 ] as const
@@ -251,6 +253,9 @@ function RootSettings() {
     >
       <SettingsPanel value="general">
         <SettingsGeneral />
+      </SettingsPanel>
+      <SettingsPanel value="voice">
+        <SettingsVoice />
       </SettingsPanel>
       <SettingsPanel value="appearance">
         <SettingsAppearance />

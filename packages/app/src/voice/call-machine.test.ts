@@ -4,7 +4,6 @@ import {
   CONNECT_TIMEOUT,
   createVoiceCallState,
   END_TIMEOUT,
-  MAX_CAPTIONS,
   transitionVoiceCall,
   voiceCallView,
   type VoiceCallEffect,
@@ -84,7 +83,7 @@ test("End hides the call at once and Call waits until the previous call is relea
   const settled = transitionVoiceCall(ending.state, { type: "end.settled", attempt: 2 })
 
   expect(settled.state).toEqual({ status: "idle", attempt: 2 })
-  expect(voiceCallView(settled.state)).toMatchObject({ canStart: true, failure: undefined, captions: [] })
+  expect(voiceCallView(settled.state)).toMatchObject({ canStart: true, failure: undefined })
   expect(transitionVoiceCall(settled.state, { type: "end.timeout", attempt: 2 }).state).toBe(settled.state)
 })
 
@@ -152,12 +151,51 @@ test("results from an earlier attempt are ignored", () => {
     { type: "connect.timeout", attempt: 1 },
     dropped(1),
     { type: "level.updated", attempt: 1, mic: 1, speaker: 1 },
-    { type: "caption.updated", attempt: 1, utterance: 0, speaker: "user", text: "late" },
+    { type: "diagnostic", attempt: 1, event: { type: "cancelled" } },
     { type: "end.settled", attempt: 1 },
     { type: "end.timeout", attempt: 1 },
   ]
 
   stale.forEach((event) => expect(transitionVoiceCall(rejoining, event).state).toBe(rejoining))
+})
+
+test("a dropped call settles its diagnostics and rejects later playback results", () => {
+  const configured = transitionVoiceCall(connected, {
+    type: "diagnostic",
+    attempt: 1,
+    event: {
+      type: "configured",
+      profile: {
+        engine: "local",
+        model: "/speech",
+        voice: "",
+        transcription: "",
+        language: "en-US",
+        delivery: "",
+      },
+    },
+  }).state
+
+  const started = transitionVoiceCall(configured, {
+    type: "diagnostic",
+    attempt: 1,
+    event: {
+      type: "started",
+      time: 1000,
+      target: { server, sessionID: here.id },
+      output: { id: "filler:1", kind: "filler" },
+    },
+  }).state
+
+  const closed = transitionVoiceCall(started, dropped()).state
+  expect(voiceCallView(closed).diagnostics?.entries[0]?.status).toBe("cancelled")
+  expect(
+    transitionVoiceCall(closed, {
+      type: "diagnostic",
+      attempt: 1,
+      event: { type: "ended", id: "filler:1" },
+    }).state,
+  ).toBe(closed)
 })
 
 test("a join that never finishes drops with a connection failure", () => {
@@ -209,37 +247,45 @@ test("levels after a drop never reach the meter, and an unchanged level writes n
   expect(voiceCallView(drop).level).toBe(0)
 })
 
-test("captions grow per utterance, keep the last four, survive Rejoin and clear on End", () => {
-  const caption = (utterance: number, text: string): VoiceCallEvent<Ctx> => ({
-    type: "caption.updated",
-    attempt: 1,
-    utterance,
-    speaker: utterance % 2 ? "assistant" : "user",
-    text,
+test("microphone and playback meters stay independent, mute hides only microphone activity", () => {
+  const hearing = transitionVoiceCall(connected, { type: "level.updated", attempt: 1, mic: 0.2, speaker: 0.05 }).state
+  expect(voiceCallView(hearing)).toMatchObject({ mic: 0.2, speaker: 0.05 })
+  const muted = transitionVoiceCall(hearing, { type: "mute.toggled" }).state
+  expect(voiceCallView(muted)).toMatchObject({ mic: 0, speaker: 0.05 })
+  expect(voiceCallView(transitionVoiceCall(muted, dropped()).state)).toMatchObject({ mic: 0, speaker: 0 })
+})
+
+test("draft promotion retains the same live call and stale activity cannot affect a rejoin", () => {
+  const draft = replay([{ type: "start", server, ctx, session: { id: "draft", draftID: "draft" } }, joined()]).state
+  const promoted = transitionVoiceCall(draft, { type: "session.viewed", server, session: here })
+  expect(promoted.state).toMatchObject({ status: "connected", attempt: 1, viewing: here })
+  expect(promoted.effects).toEqual([{ type: "instructions", attempt: 1, viewing: here }])
+  const rejoined = replay([dropped(), { type: "rejoin" }], promoted.state).state
+  expect(transitionVoiceCall(rejoined, { type: "activity.updated", attempt: 1, activity: "speaking" }).state).toBe(
+    rejoined,
+  )
+})
+
+test("a session title update does not reset ongoing speech", () => {
+  const result = transitionVoiceCall(connected, {
+    type: "session.viewed",
+    server,
+    session: { ...here, title: "Renamed" },
   })
 
-  const grown = replay([caption(0, "Please"), caption(0, "Please fix"), caption(1, "On it")], connected).state
+  expect(voiceCallView(result.state).title).toBe("Renamed")
+  expect(result.effects).toEqual([])
+})
 
-  expect(voiceCallView(grown).captions).toEqual([
-    { utterance: 0, speaker: "user", text: "Please fix" },
-    { utterance: 1, speaker: "assistant", text: "On it" },
+test("speaker silence is independent of microphone mute and survives rejoin", () => {
+  const silent = transitionVoiceCall(connected, { type: "silence.toggled" })
+  expect(silent.effects).toEqual([{ type: "silence", attempt: 1, silenced: true }])
+  expect(voiceCallView(silent.state)).toMatchObject({ muted: false, silenced: true })
+  const muted = transitionVoiceCall(silent.state, { type: "mute.toggled" }).state
+  expect(voiceCallView(muted)).toMatchObject({ muted: true, silenced: true })
+  const rejoined = replay([dropped(), { type: "rejoin" }, joined(2)], muted).state
+  expect(voiceCallView(rejoined)).toMatchObject({ muted: true, silenced: true })
+  expect(transitionVoiceCall(rejoined, { type: "silence.toggled" }).effects).toEqual([
+    { type: "silence", attempt: 2, silenced: false },
   ])
-  expect(voiceCallView(grown).latestCaption).toEqual({ utterance: 1, speaker: "assistant", text: "On it" })
-  expect(transitionVoiceCall(grown, caption(1, "On it")).state).toBe(grown)
-  expect(transitionVoiceCall(grown, caption(2, "")).state).toBe(grown)
-
-  const many = replay(
-    [2, 3, 4, 5].map((utterance) => caption(utterance, `line ${utterance}`)),
-    grown,
-  ).state
-
-  expect(voiceCallView(many).captions.map((item) => item.utterance)).toEqual([2, 3, 4, 5])
-  expect(voiceCallView(many).captions).toHaveLength(MAX_CAPTIONS)
-
-  const rejoined = replay([dropped(1), { type: "rejoin" }], many).state
-
-  expect(voiceCallView(rejoined).captions).toBe(voiceCallView(many).captions)
-  const ended = replay([{ type: "end" }, { type: "end.settled", attempt: 3 }], rejoined).state
-
-  expect(voiceCallView(ended).captions).toEqual([])
 })

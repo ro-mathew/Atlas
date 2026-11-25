@@ -4,6 +4,7 @@ import type { Accessor } from "solid-js"
 import type { DesktopMenuAction, DesktopZoomLevel } from "@/shell/commands/desktop-menu"
 import type { DraftStore } from "@/runtime/persistence/drafts"
 import type { Bridge } from "@opencode/plugin/gui/host"
+import type { VoiceBridge } from "@/voice/engine"
 
 type PickerPaths = string | string[] | null
 
@@ -34,6 +35,7 @@ export type FatalRendererErrorLog = {
 }
 
 type PlatformBase = {
+  voice?: VoiceBridge
   requestMicrophone?(): Promise<boolean>
   setVoiceCallActive?(active: boolean): Promise<void>
   /** App version */

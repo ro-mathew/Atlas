@@ -16,6 +16,7 @@ type Entry<Tab> = {
 }
 
 export const clientSettings: Entry<SettingsRootTab>[] = [
+  { tab: "voice", label: "settings.voice.title", keywords: "voice realtime speech microphone audio call local hosted" },
   { tab: "general", label: "settings.tab.preferences" },
   {
     tab: "general",

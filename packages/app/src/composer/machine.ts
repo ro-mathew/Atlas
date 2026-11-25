@@ -35,6 +35,8 @@ export type CapturedDraft = {
   target: ComposerStateTarget
   /** Whether the promoted composer may already hold a follow-up typed while the Session prepared. */
   preserveDraft: boolean
+  /** A voice submission owns its transcript, not the visible typed draft or attached context. */
+  isolated?: { shown: Prompt; base: Prompt }
   prompt: Prompt
   context: ComposerSubmission["context"]
   sources: { key: string; source: QuoteSource }[]

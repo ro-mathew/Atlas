@@ -106,6 +106,15 @@ const getBase = (appId: string): Configuration => {
     ],
     asarUnpack: ["**/node_modules/ffi-rs/**/*", `**/node_modules/@yuuang/ffi-rs-${binding}/**/*`],
     extraResources: [
+      ...(target.os === "darwin" && target.cpu === "arm64"
+        ? [
+            {
+              from: "build/voice/",
+              to: "voice",
+              filter: ["opencode-voice", "runtime.py", "codec.py", "LICENSE-speech-swift"],
+            },
+          ]
+        : []),
       {
         from: "resources/",
         to: "",

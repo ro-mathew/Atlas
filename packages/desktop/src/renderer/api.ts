@@ -18,6 +18,13 @@ const toArrayBuffer = (value: Uint8Array) =>
   value.buffer.slice(value.byteOffset, value.byteOffset + value.byteLength) as ArrayBuffer
 
 export const api: ElectronAPI = {
+  voice: {
+    available: () => invoke("VoiceAvailable"),
+    start: (id, options) => invoke("VoiceStart", { id, options }),
+    read: (id) => invoke("VoiceRead", { id }),
+    write: (id, command) => invoke("VoiceWrite", { id, command }),
+    stop: (id) => invoke("VoiceStop", { id }),
+  },
   awaitInitialization: () => invoke("AppAwaitInitialization"),
   reconnectService: (signal) => cancellable("AppReconnectService", undefined, signal),
   onSidecarChanged: (cb) => listen("SidecarChanged", (event) => cb({ url: event.url })),

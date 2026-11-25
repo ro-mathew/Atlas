@@ -8,6 +8,7 @@ import { persisted } from "@/runtime/persistence/storage"
 import { Persistence } from "@/runtime/persistence/schema"
 import { usePlatform } from "@/runtime/platform/platform"
 import { ScopedKey, type ServerScope } from "@/runtime/server/scope"
+import { VoicePreferences, resolveVoicePreferences } from "@/voice/preferences"
 
 export type Settings = typeof settingsSchema.Type
 
@@ -196,6 +197,7 @@ const soundsSchema = Persistence.struct({
 })
 
 export const settingsSchema = Persistence.struct({
+  voice: Persistence.optional(VoicePreferences),
   general: generalSchema,
   // Owned by the details plugin, which copies it out once; kept so settings rewrites cannot drop it first.
   sessionSummary: Schema.optional(
@@ -418,6 +420,12 @@ export const { use: useSettings, provider: SettingsProvider } = createSimpleCont
 
     return {
       ready,
+      voice: {
+        current: () => resolveVoicePreferences(store.voice),
+        set(value: typeof VoicePreferences.Type) {
+          setStore("voice", value)
+        },
+      },
       get current() {
         return store
       },
@@ -526,9 +534,7 @@ export const { use: useSettings, provider: SettingsProvider } = createSimpleCont
         /** The navigation prototype (Experimental → Consolidated): pinned sessions and groups, and Tabs or List. */
         navigationPrototype: createMemo(() => sidebarOrganize() === "consolidated"),
         navigation: createMemo(() =>
-          sidebarOrganize() === "consolidated" && store.appearance?.navigation === "list"
-            ? "list"
-            : "tabs",
+          sidebarOrganize() === "consolidated" && store.appearance?.navigation === "list" ? "list" : "tabs",
         ),
         setNavigation(value: "tabs" | "list") {
           setStore("appearance", "navigation", value)

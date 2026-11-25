@@ -1,3 +1,4 @@
+import { VoiceComposer } from "@/voice/composer"
 import { Tooltip } from "@opencode/ui/tooltip"
 import { Icon } from "@opencode/ui/icon"
 import { Keybind } from "@opencode/ui/keybind"
@@ -55,6 +56,7 @@ export const WorkspaceOnboardingSchema = Persistence.struct({
 
 export function NewSessionView(props: {
   composer: ComposerModel
+  draftID: string
   project: PromptProjectController
   workspace: NewSessionWorkspaceController
   location: ReturnType<typeof useNewSessionLocationDialog>
@@ -112,7 +114,9 @@ export function NewSessionView(props: {
             <div class="mt-8 flex flex-col gap-3">
               <div data-slot="new-session-composer" class="flex flex-col gap-1">
                 <div class="relative z-10">
-                  <Composer model={props.composer} />
+                  <VoiceComposer draft={{ id: props.draftID, ready: !props.project.empty() }}>
+                    {(voice) => <Composer model={props.composer} voice={voice} />}
+                  </VoiceComposer>
                 </div>
                 <Show when={props.project.selected()}>
                   {(project) => (

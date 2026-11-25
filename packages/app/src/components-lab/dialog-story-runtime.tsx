@@ -705,6 +705,8 @@ export function createStoryFetch(overrides: IntegrationInfo[] = []): typeof fetc
 
     if (pathname.startsWith("/api/credential/")) return noContentResponse()
 
+    if (pathname === "/api/experimental/voice/models") return jsonResponse({ data: { enabled: true, models: [] } })
+
     if (pathname === "/api/experimental/usage/limits") {
       return jsonResponse({ location, data: null })
     }

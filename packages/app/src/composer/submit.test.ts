@@ -18,6 +18,8 @@ import { createComposerSubmit } from "./submit"
 import { createSteerBackground } from "@/session/requests/steer-background"
 import { setMediaBlobLoader } from "@/runtime/persistence/drafts"
 import type { ComposerStateTarget } from "./submission-state"
+import { createVoiceComposerBinding } from "@/voice/input"
+import { createVoiceSubmissionQueue } from "@/voice/submission"
 
 // SAFETY: submission reads only the selected model's id, name, and provider id.
 const selectedModel = {
@@ -227,6 +229,140 @@ function text(state: ComposerStateTarget) {
 }
 
 describe("Composer submission", () => {
+  test("delayed speech segments become one normal prompt while preserving the typed draft", async () => {
+    jest.useFakeTimers()
+    const calls: string[] = []
+    const requests: string[] = []
+    const admitted = Promise.withResolvers<void>()
+    const completed = Promise.withResolvers<boolean>()
+    const state = createMemoryComposerState({ prompt: "Keep this draft" }).capture()
+
+    const submission = submitInput(
+      active(
+        state,
+        session({
+          calls,
+          prompt: async (value) => {
+            requests.push(value.text)
+            await admitted.promise
+          },
+        }),
+      ),
+    )
+
+    const binding = createVoiceComposerBinding({ draft: state, submit: submission.submitVoice })
+
+    const queue = createVoiceSubmissionQueue({
+      delay: 1000,
+      submit: async (batch) => {
+        const result = await batch.binding.submit(batch.id, batch.text)
+        completed.resolve(result.sent)
+      },
+    })
+
+    ;["First sentence.", "Second sentence.", "Third sentence."].forEach((text, index) => {
+      queue.update({ id: `utterance-${index}`, text, binding, target: { server: "local", sessionID: "session" } }, true)
+    })
+    expect(text(state)).toBe("Keep this draft\nFirst sentence. Second sentence. Third sentence.")
+    jest.advanceTimersByTime(999)
+    expect(requests).toEqual([])
+    jest.advanceTimersByTime(1)
+    admitted.resolve()
+    expect(await completed.promise).toBe(true)
+    expect(requests).toEqual(["First sentence. Second sentence. Third sentence."])
+    expect(text(state)).toBe("Keep this draft")
+    queue.close()
+    jest.useRealTimers()
+  })
+
+  test("voice submits only speech with the current selection, preserving a typed draft and continuing after detachment", async () => {
+    const calls: string[] = []
+    const admitted = Promise.withResolvers<void>()
+    const delivered = Promise.withResolvers<void>()
+    const sent: Parameters<ComposerSession["data"]["session"]["prompt"]>[0][] = []
+    const state = createMemoryComposerState({ prompt: "Keep this draft" }).capture()
+
+    const target = session({
+      calls,
+      prompt: async (value) => {
+        sent.push(value)
+        delivered.resolve()
+        await admitted.promise
+      },
+    })
+
+    const adapter = {
+      ...active(state, target),
+      interrupt: async () => {
+        calls.push("interrupt")
+      },
+    }
+
+    const submission = submitInput(adapter)
+    const binding = createVoiceComposerBinding({ draft: state, submit: submission.submitVoice })
+    binding.partial("utterance", "Change the")
+    expect(text(state)).toBe("Keep this draft\nChange the")
+    const result = binding.submit("utterance", "Change the button")
+    // The voice attachment can go away while the normal Session admission is outstanding.
+    binding.discard("utterance")
+    admitted.resolve()
+    expect((await result).sent).toBe(true)
+    await delivered.promise
+    expect(sent).toHaveLength(1)
+    expect(sent[0]).toMatchObject({ text: "Change the button", delivery: "steer" })
+    expect(calls).toContain("switch-model")
+    expect(calls).not.toContain("interrupt")
+    expect(text(state)).toBe("Keep this draft")
+  })
+
+  test("voice finalization preserves edits made while recognition was pending", async () => {
+    const state = createMemoryComposerState({ prompt: "Draft" }).capture()
+    const submission = submitInput(active(state, session({ calls: [] })))
+    const binding = createVoiceComposerBinding({ draft: state, submit: submission.submitVoice })
+    binding.partial("utterance", "A partial")
+    state.set([{ type: "text", content: "My edited draft", start: 0, end: 15 }])
+    expect((await binding.submit("utterance", "The final speech")).sent).toBe(true)
+    expect(text(state)).toBe("My edited draft")
+  })
+
+  test("a failed voice admission restores speech beside the typed draft", async () => {
+    const failed = Promise.withResolvers<void>()
+    const state = createMemoryComposerState({ prompt: "Keep this draft" }).capture()
+
+    const target = session({
+      calls: [],
+      prompt: async () => {
+        throw new Error("offline")
+      },
+    })
+
+    const submission = submitInput(active(state, target), {
+      missingSelection() {},
+      unqueueable() {},
+      failed: () => failed.resolve(),
+    })
+
+    const binding = createVoiceComposerBinding({ draft: state, submit: submission.submitVoice })
+    await binding.submit("utterance", "The recognized speech")
+    await failed.promise
+    expect(text(state)).toContain("Keep this draft")
+    expect(text(state).split("The recognized speech")).toHaveLength(2)
+  })
+
+  test("a late final sends without replacing the next utterance's composer segment", async () => {
+    const state = createMemoryComposerState({ prompt: "Typed draft" }).capture()
+    const submission = submitInput(active(state, session({ calls: [] })))
+    const binding = createVoiceComposerBinding({ draft: state, submit: submission.submitVoice })
+    binding.partial("first", "Old partial")
+    binding.partial("second", "New partial")
+    expect((await binding.submit("first", "First final")).sent).toBe(true)
+    expect(text(state)).toBe("Typed draft\nNew partial")
+    binding.partial("second", "New complete speech")
+    expect(text(state)).toBe("Typed draft\nNew complete speech")
+    expect((await binding.submit("second", "New final")).sent).toBe(true)
+    expect(text(state)).toBe("Typed draft")
+  })
+
   test("retains the submitting session before waiting for server admission", async () => {
     const calls: string[] = []
 
@@ -314,7 +450,11 @@ describe("Composer submission", () => {
     gate.resolve()
     await submitted
     await sent.promise
-    expect(calls.filter((call) => call === "gate" || call === "admit" || call === "send")).toEqual(["gate", "admit", "send"])
+    expect(calls.filter((call) => call === "gate" || call === "admit" || call === "send")).toEqual([
+      "gate",
+      "admit",
+      "send",
+    ])
     expect(composer.submission.state()).toEqual({ type: "idle", attempt: 1 })
   })
 
@@ -322,46 +462,54 @@ describe("Composer submission", () => {
     { name: "a prompt", prompt: "Hello", left: "Hello" },
     { name: "a prompt, with a draft typed since", prompt: "Hello", edit: "next", left: "Hello\n\nnext" },
     { name: "a server command", prompt: "/review now", left: "/review now" },
-  ])("Stop while $name waits on the gate cancels that send: nothing reaches the server and its text comes back", async (row) => {
-    const calls: string[] = []
-    const timeline: string[] = []
-    const statuses: ("idle" | "running")[] = []
-    const gate = Promise.withResolvers<void>()
+  ])(
+    "Stop while $name waits on the gate cancels that send: nothing reaches the server and its text comes back",
+    async (row) => {
+      const calls: string[] = []
+      const timeline: string[] = []
+      const statuses: ("idle" | "running")[] = []
+      const gate = Promise.withResolvers<void>()
 
-    const target = session({
-      calls,
-      statuses,
-      handoff: { set: () => timeline.push("set"), hold() {}, settle: () => timeline.push("settle"), clear: () => timeline.push("clear") },
-      command: async () => void calls.push("command"),
-    })
+      const target = session({
+        calls,
+        statuses,
+        handoff: {
+          set: () => timeline.push("set"),
+          hold() {},
+          settle: () => timeline.push("settle"),
+          clear: () => timeline.push("clear"),
+        },
+        command: async () => void calls.push("command"),
+      })
 
-    const composer = gated(target, () => gate.promise, { prompt: row.prompt, calls })
-    const submitted = composer.submission.submit(new Event("submit"))
-    await flush()
-    expect(composer.submission.state().type).toBe("sending")
-    expect(text(composer.state)).toBe("")
+      const composer = gated(target, () => gate.promise, { prompt: row.prompt, calls })
+      const submitted = composer.submission.submit(new Event("submit"))
+      await flush()
+      expect(composer.submission.state().type).toBe("sending")
+      expect(text(composer.state)).toBe("")
 
-    if (row.edit) composer.state.set(typed(row.edit), row.edit.length)
-    await composer.submission.stop()
-    await submitted
-    await flush()
+      if (row.edit) composer.state.set(typed(row.edit), row.edit.length)
+      await composer.submission.stop()
+      await submitted
+      await flush()
 
-    // Neither the request nor an interrupt: the Session was never told of this send.
-    expect(calls.filter((call) => call === "send" || call === "command" || call === "interrupt")).toEqual([])
-    expect(text(composer.state)).toBe(row.left)
-    expect(composer.failures).toEqual([])
-    expect(composer.submission.state()).toEqual({ type: "idle", attempt: 1 })
-    // A prompt that showed in the Session is taken out of it again, and the Session is not left looking busy.
-    expect(timeline).toEqual(row.prompt.startsWith("/") ? [] : ["set", "clear"])
-    expect(statuses.at(-1) ?? "idle").toBe("idle")
-    expect(composer.history).toEqual([`add:${row.prompt}`, `remove:${row.prompt}`])
+      // Neither the request nor an interrupt: the Session was never told of this send.
+      expect(calls.filter((call) => call === "send" || call === "command" || call === "interrupt")).toEqual([])
+      expect(text(composer.state)).toBe(row.left)
+      expect(composer.failures).toEqual([])
+      expect(composer.submission.state()).toEqual({ type: "idle", attempt: 1 })
+      // A prompt that showed in the Session is taken out of it again, and the Session is not left looking busy.
+      expect(timeline).toEqual(row.prompt.startsWith("/") ? [] : ["set", "clear"])
+      expect(statuses.at(-1) ?? "idle").toBe("idle")
+      expect(composer.history).toEqual([`add:${row.prompt}`, `remove:${row.prompt}`])
 
-    // What the send waited for is ready later: the result belongs to a send that no longer exists.
-    gate.resolve()
-    await flush()
-    expect(calls.filter((call) => call === "send" || call === "command")).toEqual([])
-    expect(composer.submission.state()).toEqual({ type: "idle", attempt: 1 })
-  })
+      // What the send waited for is ready later: the result belongs to a send that no longer exists.
+      gate.resolve()
+      await flush()
+      expect(calls.filter((call) => call === "send" || call === "command")).toEqual([])
+      expect(composer.submission.state()).toEqual({ type: "idle", attempt: 1 })
+    },
+  )
 
   test.each([
     {
@@ -405,7 +553,12 @@ describe("Composer submission", () => {
 
     await flush()
     expect(composer.state.context.items()).toEqual([])
-    composer.state.context.add({ type: "file", path: "src/later.ts", comment: "Added while it waited", commentID: "later" })
+    composer.state.context.add({
+      type: "file",
+      path: "src/later.ts",
+      comment: "Added while it waited",
+      commentID: "later",
+    })
     await composer.submission.stop()
     await submitted
     await flush()
@@ -526,8 +679,7 @@ describe("Composer submission", () => {
         const ref = { key: `server\n${target.id}`, id: target.id } as SessionRef
         const never = { plugin: "browser", value: { ready: () => new Promise<void>(() => undefined) } }
 
-        const ready = () =>
-          how === "times out" ? settlePromptGates([never], () => true, ref) : gate.promise
+        const ready = () => (how === "times out" ? settlePromptGates([never], () => true, ref) : gate.promise)
 
         const sends = [
           gated(target, ready, { prompt: "Hello" }),
@@ -557,9 +709,7 @@ describe("Composer submission", () => {
     const accepted = Promise.withResolvers<void>()
     const state = createMemoryComposerState({ prompt: "Hello" }).capture()
 
-    await submitInput(active(state, session({ calls, accept: () => accepted.resolve() }))).submit(
-      new Event("submit"),
-    )
+    await submitInput(active(state, session({ calls, accept: () => accepted.resolve() }))).submit(new Event("submit"))
     await accepted.promise
 
     expect(calls.filter((call) => call === "accept-send")).toHaveLength(1)
@@ -1782,4 +1932,23 @@ describe("Composer submission", () => {
     expect(calls).toEqual([])
     expect(state.current().some((part) => part.type === "image")).toBe(true)
   })
+})
+
+test("a first voice prompt binds the created session before admission and keeps the typed draft", async () => {
+  const calls: string[] = []
+  const draft = createMemoryComposerState({ prompt: "Keep this draft" }).capture()
+  const target = session({ calls })
+  const adapter = fresh(draft, async () => ({ session: target, cleanupReady: Promise.resolve() }))
+  adapter.started = (created) => calls.push(`voice-bound:${created.id}`)
+  const root = createRoot((dispose) => ({ submission: submitInput(adapter), dispose }))
+
+  try {
+    const result = await root.submission.submitVoice("First spoken request", draft.current())
+    expect(result.sent).toBe(true)
+    expect(calls.filter((call) => call.startsWith("voice-bound:"))).toEqual([`voice-bound:${target.id}`])
+    expect(calls.indexOf(`voice-bound:${target.id}`)).toBeLessThan(calls.indexOf("admit"))
+    expect(draft.current()).toEqual([{ type: "text", content: "Keep this draft", start: 0, end: 15 }])
+  } finally {
+    root.dispose()
+  }
 })

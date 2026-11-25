@@ -1,9 +1,12 @@
-import { createEffect, createMemo, createSignal, on, onMount, untrack, type Accessor } from "solid-js"
+import { createEffect, createMemo, createSignal, on, onMount, onCleanup, untrack, type Accessor } from "solid-js"
 import { useDialog } from "@opencode/ui/context/dialog"
 import type { ComposerControls } from "@/composer/adapter"
 import { setCursorPosition } from "@/composer/editor/dom"
 import { promptLength } from "@/composer/prompt-parts"
 import { createComposerModel } from "@/composer/model"
+import { useVoice } from "@/voice/context"
+import { createVoiceComposerBinding } from "@/voice/input"
+import { useServer } from "@/runtime/server/current"
 import { useSettings } from "@/settings/model"
 import { createActiveComposerAdapter } from "./adapter"
 import { useComposerFocus } from "./focus"
@@ -55,6 +58,12 @@ export function createSessionComposerController(input: {
   })
 
   const composer = createComposerModel(adapter, { queue })
+  onCleanup(
+    useVoice().bind(
+      { server: useServer().key, sessionID: input.sessionID },
+      createVoiceComposerBinding({ draft: adapter.state, submit: composer.voice.submit }),
+    ),
+  )
   const editable = createMemo(() => region.showComposer() && !region.child())
   // This controller is recreated when a session becomes active, which is when its composer takes focus
   // (focus-machine.ts). It waits for the draft, the editor and any request dock or dialog to clear.

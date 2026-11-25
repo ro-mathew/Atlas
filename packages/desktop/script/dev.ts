@@ -33,6 +33,7 @@ async function main() {
   process.env.OPENCODE_DESKTOP_ISOLATED_SERVER ??= "1"
   cloneLockedDevProfile()
   await prepareDesktop()
+  await $`bun ${join(import.meta.dir, "../voice/build.ts")}`
   await prepareDevServer(options.server)
   await startDesktop(options.electron)
 }
@@ -175,7 +176,9 @@ function hasLiveRegisteredService(serviceFile: string) {
   if (!existsSync(serviceFile)) return false
 
   try {
-    const decoded = Option.getOrUndefined(Schema.decodeUnknownOption(RegisteredServicePid)(readFileSync(serviceFile, "utf8")))
+    const decoded = Option.getOrUndefined(
+      Schema.decodeUnknownOption(RegisteredServicePid)(readFileSync(serviceFile, "utf8")),
+    )
 
     return decoded ? isPidAlive(decoded.pid) : false
   } catch {
@@ -190,7 +193,12 @@ function cloneLockedDevProfile() {
   const sourceDir = defaultDevUserData()
 
   if (!isProfileLocked(sourceDir)) return
-  const slug = createHash("sha1").update(import.meta.dirname).digest("hex").slice(0, 8)
+
+  const slug = createHash("sha1")
+    .update(import.meta.dirname)
+    .digest("hex")
+    .slice(0, 8)
+
   const cloneDir = join(tmpdir(), `opencode-desktop-dev-${slug}`)
   mkdirSync(cloneDir, { recursive: true })
 

@@ -88,9 +88,7 @@ export type ComposerSession = {
     }
   }
   file: {
-    list: (
-      input: Parameters<ServerSDK["api"]["file"]["list"]>[0],
-    ) => Promise<{ data: readonly { path: string }[] }>
+    list: (input: Parameters<ServerSDK["api"]["file"]["list"]>[0]) => Promise<{ data: readonly { path: string }[] }>
   }
   data: {
     location: { command: Pick<Data["location"]["command"], "list"> }
@@ -141,6 +139,8 @@ export type ComposerSubmissionHandle = {
 
 export type NewSessionComposerAdapter = ComposerAdapterBase & {
   kind: "new-session"
+  /** Binds session attachments after creation, before the first prompt can be admitted. */
+  started?: (session: ComposerSession) => void
   start: (
     selection: ComposerSelection,
     submission: ComposerSubmissionHandle,

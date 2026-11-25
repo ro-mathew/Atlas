@@ -1,13 +1,16 @@
+import { createStore } from "solid-js/store"
 import { createSimpleContext } from "@opencode/ui/context"
-import { useLocation, useNavigate } from "@solidjs/router"
 import { createMemo, createSignal, onCleanup, untrack } from "solid-js"
 import type { SessionInfo } from "@opencode/client/promise"
 import { usePlatform } from "@/runtime/platform/platform"
 import type { ServerCtx } from "@/runtime/server/runtime"
 import type { ServerConnection } from "@/runtime/server/registry"
-import { sessionHref } from "@/shell/routes/session"
-import { findSessionTab, useTabs } from "@/shell/tabs/tabs"
 import type { createVoiceCall } from "./call"
+import { useSettings } from "@/settings/model"
+import { voiceTargetKey, type VoiceInputTarget } from "./input-machine"
+import type { VoiceComposerBinding } from "./input"
+import { VoiceFailure } from "./failure"
+import { useHostApis } from "@/runtime/plugin/root"
 import {
   createVoiceCallState,
   isConnecting,
@@ -21,9 +24,10 @@ export const { provider: VoiceProvider, use: useVoice } = createSimpleContext({
   name: "Voice",
   init: () => {
     const platform = usePlatform()
-    const navigate = useNavigate()
-    const location = useLocation()
-    const tabs = useTabs()
+    const settings = useSettings()
+    const diagnostics = useHostApis().diagnostics
+    const bindings = new Map<string, VoiceComposerBinding>()
+    const [presentation, setPresentation] = createStore({ hosts: 0 })
 
     const [call, setCall] = createSignal(createVoiceCallState<ServerCtx>())
     const view = createMemo(() => voiceCallView(call()))
@@ -33,28 +37,60 @@ export const { provider: VoiceProvider, use: useVoice } = createSimpleContext({
     // The latest transport close; the next join waits for it so the active-call IPC is released in order.
     let closing: Promise<unknown> = Promise.resolve()
 
-    // Resolves once the router shows href; voice must not report a move that didn't happen.
-    const routed = (href: string, signal: AbortSignal) =>
-      new Promise<void>((resolve, reject) => {
-        const started = Date.now()
-
-        const check = () => {
-          if (signal.aborted) return reject(signal.reason)
-
-          if (location.pathname === href) return resolve()
-
-          if (Date.now() - started > 3000) return reject(new Error("Desktop did not show the session"))
-          setTimeout(check, 50)
-        }
-
-        check()
-      })
-
     const dispatch = (event: VoiceCallEvent<ServerCtx>) => {
       const current = untrack(call)
       const next = transitionVoiceCall(current, event)
 
-      if (next.state !== current) setCall(next.state)
+      if (next.state === current) return
+
+      if (
+        "viewing" in next.state &&
+        !next.state.viewing.draftID &&
+        next.state.diagnostics?.profile &&
+        ((event.type === "diagnostic" && event.event.type === "configured") ||
+          event.type === "connect.succeeded" ||
+          event.type === "call.dropped" ||
+          event.type === "connect.failed" ||
+          event.type === "session.viewed")
+      ) {
+        const target = { server: next.state.server, sessionID: next.state.viewing.id }
+        const id = `voice:${next.state.attempt}:connection`
+
+        const previous = diagnostics
+          .list({ server: { id: target.server }, id: target.sessionID })
+          .find((entry) => entry.id === id)
+
+        diagnostics.record(target, {
+          id,
+          type: "voice.connection",
+          time: previous?.time ?? Date.now(),
+          model: next.state.diagnostics.profile.model,
+          data: {
+            profile: next.state.diagnostics.profile,
+            status: next.state.status,
+            failure: next.state.status === "dropped" ? next.state.failure : null,
+          },
+        })
+      }
+
+      const previous = "diagnostics" in current ? current.diagnostics?.entries : undefined
+      const entries = "diagnostics" in next.state ? next.state.diagnostics?.entries : undefined
+      const recent = entries ?? previous
+      // End removes the call state. Keep its final snapshots inspectable in the Context panel.
+      recent?.forEach((entry) => {
+        const stopped = !entries && (entry.status === "active" || entry.status === "paused")
+
+        if (!stopped && previous?.includes(entry)) return
+        diagnostics.record(entry.target, {
+          id: `${current.attempt}:${entry.id}`,
+          type: `voice.${entry.kind}`,
+          time: entry.time,
+          model: entry.profile.model,
+          data: { ...entry, status: stopped ? "cancelled" : entry.status },
+        })
+      })
+
+      setCall(next.state)
       next.effects.forEach(perform)
     }
 
@@ -71,6 +107,8 @@ export const { provider: VoiceProvider, use: useVoice } = createSimpleContext({
 
       if (effect.type === "activate") return session?.activate(effect.attempt, effect.sync)
 
+      if (effect.type === "silence") return session?.silence(effect.attempt, effect.silenced)
+
       if (effect.type === "instructions") return session?.instructions(effect.attempt, effect.viewing)
       session?.mute(effect.attempt, effect.muted)
     }
@@ -85,32 +123,21 @@ export const { provider: VoiceProvider, use: useVoice } = createSimpleContext({
           session ??= createVoiceCall({
             ctx: effect.ctx,
             platform,
-            open: async (next, signal) => {
-              const href = sessionHref(effect.server, next.id)
-
-              // Subagent sessions open inside their root session's tab, which the titlebar finds from the route.
-              const tab =
-                findSessionTab(tabs.store, effect.server, next.id) ??
-                (next.parentID ? undefined : tabs.addSessionTab({ server: effect.server, sessionId: next.id }))
-
-              if (tab) tabs.remember(tab)
-              navigate(href)
-              await routed(href, signal)
-              // A call that ended or dropped mid-open must not take over the view.
-              signal.throwIfAborted()
-              dispatch({ type: "session.viewed", server: effect.server, session: { id: next.id, title: next.title } })
-            },
-            tabs: () =>
-              tabs.store.flatMap((tab) =>
-                tab.type === "session" && tab.server === effect.server ? [tab.sessionId] : [],
-              ),
+            preferences: settings.voice.current,
+            binding: (target) => bindings.get(voiceTargetKey(target)),
             call: () => untrack(call),
             dispatch,
           })
 
           return session.connect(effect.attempt, effect.viewing, effect.muted)
         })
-        .catch(() => dispatch({ type: "connect.failed", attempt: effect.attempt, failure: "connection" }))
+        .catch((error) =>
+          dispatch({
+            type: "connect.failed",
+            attempt: effect.attempt,
+            failure: error instanceof VoiceFailure ? error.reason : "connection",
+          }),
+        )
         .finally(() => clearTimeout(timer))
     }
 
@@ -119,7 +146,7 @@ export const { provider: VoiceProvider, use: useVoice } = createSimpleContext({
       const timer = setTimeout(() => dispatch({ type: "end.timeout", attempt: effect.attempt }), effect.timeout)
       session = undefined
       closing = done
-      void done.then(() => {
+      void done.finally(() => {
         clearTimeout(timer)
         dispatch({ type: "end.settled", attempt: effect.attempt })
       })
@@ -136,9 +163,33 @@ export const { provider: VoiceProvider, use: useVoice } = createSimpleContext({
     })
 
     return {
+      bind(target: VoiceInputTarget, binding: VoiceComposerBinding) {
+        const key = voiceTargetKey(target)
+        bindings.set(key, binding)
+
+        return () => {
+          if (bindings.get(key) === binding) bindings.delete(key)
+        }
+      },
+      present() {
+        setPresentation("hosts", (count) => count + 1)
+
+        return () => setPresentation("hosts", (count) => count - 1)
+      },
+      presented: () => presentation.hosts > 0,
       view,
+      startDraft(server: ServerConnection.Key, ctx: ServerCtx, draftID: string, title: string) {
+        dispatch({ type: "start", server, ctx, session: { id: draftID, draftID, title } })
+      },
+      promoteDraft(server: ServerConnection.Key, draftID: string, sessionID: string) {
+        const current = untrack(call)
+
+        if (!("viewing" in current) || current.server !== server || current.viewing.draftID !== draftID) return
+        dispatch({ type: "session.viewed", server, session: { id: sessionID } })
+      },
       end,
       mute: () => dispatch({ type: "mute.toggled" }),
+      silence: () => dispatch({ type: "silence.toggled" }),
       rejoin: () => dispatch({ type: "rejoin" }),
       /** Tells the call which session is on screen; ignored unless a call on that server is open. */
       syncSession(server: ServerConnection.Key, session: SessionInfo) {

@@ -3,7 +3,16 @@
 
 import type { Schema } from "effect"
 import type { Context } from "./context.js"
-import { Registry, type Catalog, type Cleanup, type Contract, type Messages, type Persisted, type StoreDeclaration, type StoreFrom } from "./core.js"
+import {
+  Registry,
+  type Catalog,
+  type Cleanup,
+  type Contract,
+  type Messages,
+  type Persisted,
+  type StoreDeclaration,
+  type StoreFrom,
+} from "./core.js"
 import type { Desktop, Layout, Locale, OpenOptions, SessionRef, StorageScope, StoreOptions } from "./host-apis.js"
 import type { MainContext } from "./main.js"
 import type { Command, IconName, Panel, PanelTab, SlotMap } from "./registries.js"
@@ -367,6 +376,35 @@ export interface BuiltinLocale extends Locale {
   setDirection(direction: "ltr" | "rtl"): void
 }
 
+/** One client-side operation, separate from durable conversation messages and model context. */
+export interface BuiltinDiagnostic {
+  /** Stable operation identity within its session; updates replace the same entry. */
+  readonly id: string
+  /** Technical operation name, for example `voice.answer`. */
+  readonly type: string
+  /** Time the operation began, as Unix milliseconds. */
+  readonly time: number
+  /** Model that performs this operation, when applicable; never a credential. */
+  readonly model?: string
+  /** Current operation snapshot, with credentials and hidden transcripts omitted by its owner. */
+  readonly data: Schema.Json
+}
+
+/** Client activity retained for this window, including after its owning feature closes. */
+export interface BuiltinDiagnostics {
+  /**
+   * Reads the session's recent client operations reactively. Empty when none were recorded. The window retains
+   * at most 200 entries across sessions; these entries do not contribute to model context, token totals or cost.
+   * @param session - The session and server whose client activity to read.
+   * @returns Entries in start order, oldest first.
+   * @example
+   * ```ts
+   * const entries = builtinContext(ctx).diagnostics.list(session)
+   * ```
+   */
+  list(session: SessionRef): readonly BuiltinDiagnostic[]
+}
+
 /** The window context as the app's host builds it for every plugin, with the members only built-ins use. */
 export interface BuiltinContext extends Context {
   /**
@@ -384,6 +422,8 @@ export interface BuiltinContext extends Context {
   readonly layout: BuiltinLayout
   /** Stores whose older homes may be parts of shared app keys. */
   readonly storage: BuiltinStorage
+  /** Recent client operations, separate from the server's conversation history. */
+  readonly diagnostics: BuiltinDiagnostics
 }
 
 /**
