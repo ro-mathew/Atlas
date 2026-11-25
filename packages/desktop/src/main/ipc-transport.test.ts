@@ -8,11 +8,87 @@ import { Transferable } from "effect/workers"
 import { omitUndefined } from "../shared/ipc-transport"
 import { EventRpcs, MenuCommandTriggered } from "../shared/ipc-rpc/events"
 import { FilesOpenFilePicker } from "../shared/ipc-rpc/files"
+import { VoiceRpcs } from "../shared/ipc-rpc/voice"
 import { emitIpcEvent } from "./ipc-events"
 import { eventHandlers } from "./ipc-handlers/events"
 import { IpcPortHandoff, IpcServerProtocolLive } from "./ipc-transport"
 
 describe("desktop RPC transport", () => {
+  test("voice IPC decodes control jobs, strips filler text, and rejects malformed model and speech input", async () => {
+    const received: unknown[] = []
+
+    const handlers = VoiceRpcs.toLayer({
+      VoiceAvailable: () => Effect.succeed(true),
+      VoiceStart: () => Effect.void,
+      VoiceRead: () => Effect.succeed([]),
+      VoiceWrite: (value) =>
+        Effect.sync(() => {
+          received.push(value.command)
+        }),
+      VoiceStop: () => Effect.void,
+    })
+
+    const live = RpcServer.layer(VoiceRpcs).pipe(Layer.provide(handlers), Layer.provideMerge(IpcServerProtocolLive))
+    const runtime = ManagedRuntime.make(live)
+    const handoff = await runtime.runPromise(IpcPortHandoff)
+    const channel = new MessageChannel()
+    handoff.bind(sender(1), serverPort(channel.port1))
+
+    const cases = [
+      { tag: "VoiceWrite", payload: { id: "call", command: { type: "cancel", fade: true } }, accepted: true },
+      { tag: "VoiceWrite", payload: { id: "call", command: { type: "cancel", fade: "true" } }, accepted: false },
+      {
+        tag: "VoiceWrite",
+        payload: { id: "call", command: { type: "speak", output: { id: "f", kind: "filler", text: "hidden" } } },
+        accepted: true,
+      },
+      {
+        tag: "VoiceWrite",
+        payload: { id: "call", command: { type: "speak", output: { id: "a", kind: "answer", text: "Read this." } } },
+        accepted: true,
+      },
+      {
+        tag: "VoiceWrite",
+        payload: {
+          id: "call",
+          command: { type: "speak", output: { id: "a", kind: "answer", text: "x".repeat(2001) } },
+        },
+        accepted: false,
+      },
+      {
+        tag: "VoiceStart",
+        payload: { id: "call", options: { runtime: "", model: "/model", language: "en-US" } },
+        accepted: false,
+      },
+      {
+        tag: "VoiceStart",
+        payload: {
+          id: "call",
+          options: { runtime: "/python", model: "/model", language: "en-US", delivery: "x".repeat(8193) },
+        },
+        accepted: false,
+      },
+      ...[0, 3001, 1000.5, 300, 1500, 3000].map((activityDelay) => ({
+        tag: "VoiceStart",
+        payload: { id: "call", options: { runtime: "/python", model: "/model", language: "en-US", activityDelay } },
+        accepted: [300, 1500, 3000].includes(activityDelay),
+      })),
+    ]
+
+    for (const [id, row] of cases.entries()) {
+      const result = await call(channel.port2, id, row.tag, row.payload)
+      expect(result.exit._tag).toBe(row.accepted ? "Success" : "Failure")
+    }
+
+    expect(received).toEqual([
+      { type: "cancel", fade: true },
+      { type: "speak", output: { id: "f", kind: "filler" } },
+      { type: "speak", output: { id: "a", kind: "answer", text: "Read this." } },
+    ])
+    channel.port2.close()
+    await runtime.dispose()
+  })
+
   test("decodes renderer payloads whose optional fields are undefined", async () => {
     let received: unknown
     const rpcs = RpcGroup.make(FilesOpenFilePicker)

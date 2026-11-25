@@ -5,12 +5,13 @@ import { Integration } from "@opencode/core/integration"
 import { ModelsDev } from "@opencode/core/models-dev"
 import { Provider } from "@opencode/core/provider"
 import { Voice } from "@opencode/core/voice"
+import { Flag } from "@opencode/core/flag"
 import { Effect, Layer } from "effect"
 import { HttpClient, type HttpClientRequest, HttpClientResponse } from "effect/http"
 import { TestClock } from "effect/testing"
 import { testEffect } from "./lib/effect"
 
-const it = testEffect(Layer.empty)
+const it = testEffect(Flag.testLayer([], { app: { channel: "dev" } }))
 
 const credential = (id: string, method: "key" | "oauth") => ({
   type: "credential" as const,
@@ -244,6 +245,7 @@ it.effect("lists voice models with availability and default without resolving cr
       )
 
     expect(yield* list({ openai: [credential("active", "key")] })).toEqual({
+      enabled: true,
       models: [
         {
           model: "gpt-live-1.1",

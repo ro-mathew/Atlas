@@ -48,7 +48,7 @@ const sendFailedTitle = {
   prompt: "prompt.toast.promptSendFailed.title",
 } as const
 
-export function createComposerModel(adapter: ComposerAdapter, options?: { queue?: ComposerQueue }): ComposerModel {
+export function createComposerModel(adapter: ComposerAdapter, options?: { queue?: ComposerQueue }) {
   const sdk = useWorkspaceLocation()
   const data = useData()
   const server = useServer()
@@ -652,7 +652,7 @@ export function createComposerModel(adapter: ComposerAdapter, options?: { queue?
   ])
 
   // SAFETY: the `model` getter defined on the controller above completes `ComposerModel`.
-  return controller as ComposerModel
+  return Object.assign(controller as ComposerModel, { voice: { submit: submission.submitVoice } })
 }
 
 function composerErrorMessage(language: ReturnType<typeof useLanguage>, cause: unknown) {

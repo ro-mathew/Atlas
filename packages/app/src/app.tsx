@@ -1,6 +1,6 @@
 import "@/index.css"
+import { VoiceDock } from "@/voice/composer"
 import { VoiceProvider } from "@/voice/context"
-import { VoiceOverlay } from "@/voice/composer"
 import { DialogProvider } from "@opencode/ui/context/dialog"
 import { FileComponentProvider } from "@opencode/ui/context/file"
 import { installFocusRescue } from "@opencode/ui/context/focus-rescue"
@@ -116,7 +116,7 @@ export function AppInterface(props: {
             <VoiceProvider>
               {props.children}
               {rootProps.children}
-              <VoiceOverlay />
+              <VoiceDock />
             </VoiceProvider>
             <KeySequenceHint />
           </CommandProvider>

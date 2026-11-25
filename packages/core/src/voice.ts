@@ -16,6 +16,7 @@ import { Credential } from "./credential.js"
 import { requestExecutor } from "./effect/app-node-platform.js"
 import { Integration } from "./integration.js"
 import { ModelsDev } from "./models-dev.js"
+import { Flag } from "./flag.js"
 
 export interface ModelInfo {
   readonly model: string
@@ -27,6 +28,7 @@ export interface ModelInfo {
 }
 
 export interface Models {
+  readonly enabled?: boolean
   readonly models: readonly ModelInfo[]
   readonly default?: string
 }
@@ -61,6 +63,7 @@ export const layer = Layer.effect(
     const executor = yield* RequestExecutor.Service
     const integrations = yield* Integration.Service
     const modelsDev = yield* ModelsDev.Service
+    const flags = yield* Flag.Service
 
     // Integration lists the active credential first, then newer stored credentials, then non-empty env vars.
     const findConnection = (provider: string, methods: readonly string[] = ["key"]) =>
@@ -111,7 +114,8 @@ export const layer = Layer.effect(
     const models = Effect.fn("Voice.models")(function* () {
       const list = (yield* offered()).map((item) => item.info)
       const first = list.find((item) => item.available)?.model
-      return first ? { models: list, default: first } : { models: list }
+      const enabled = yield* flags.enabled("voice_calls")
+      return { models: list, ...(first ? { default: first } : {}), enabled }
     })
 
     const session = Effect.fn("Voice.session")(function* (input: SessionInput) {
@@ -160,7 +164,7 @@ export const layer = Layer.effect(
 export const node = makeLocationNode({
   service: Service,
   layer,
-  deps: [Integration.node, ModelsDev.node, requestExecutor],
+  deps: [Integration.node, ModelsDev.node, Flag.node, requestExecutor],
 })
 
 /** OpenCode hosts GPT-Live on its OpenAI account, billed to the workspace whose credential starts a session. */

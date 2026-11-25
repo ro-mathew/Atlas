@@ -404,6 +404,11 @@ when the agent uses the tab. `close` returns true only for a tab closed now; a p
 
 Each registry token has the same id as the public one, so the host reads every item through it. The host builds every context with the built-in members; `builtinContext` and `builtinMainContext` only type them. A plugin bundle's catalog holds every locale inline, and the host rejects a bundle whose catalog has a loader.
 
+`builtinContext(ctx).diagnostics.list(session)` reads recent client operations for that session reactively. The host
+retains at most 200 entries across sessions for the lifetime of the window, including after an operation's feature
+closes. The Context panel shows these separately from raw conversation messages: they never enter model context,
+token counts or cost. Feature owners record snapshots with model provenance and omit credentials and hidden transcripts.
+
 ```ts
 i18n: builtinCatalog({ en, de: () => import("./i18n/de") }),
 ```

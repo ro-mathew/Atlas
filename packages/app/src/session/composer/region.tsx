@@ -663,12 +663,15 @@ export function ActiveSessionComposerRegion(props: {
                 }
               >
                 <VoiceComposer session={props.session.data.info()}>
-                  <Composer
-                    model={props.model.composer}
-                    borderUnderlay
-                    readOnly={props.model.queue.undoing()}
-                    suggestionBoundary={props.suggestionBoundary}
-                  />
+                  {(voice) => (
+                    <Composer
+                      voice={voice}
+                      model={props.model.composer}
+                      borderUnderlay
+                      readOnly={props.model.queue.undoing()}
+                      suggestionBoundary={props.suggestionBoundary}
+                    />
+                  )}
                 </VoiceComposer>
               </Show>
             </div>

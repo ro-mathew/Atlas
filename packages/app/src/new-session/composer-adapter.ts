@@ -81,6 +81,7 @@ export function createNewSessionComposerAdapter(props: {
   root: () => string
   branch: () => string | undefined
   submitted: () => void
+  started?: (session: ComposerSession) => void
   mcp: DraftMcpControls
   start: NewSessionStartStore
 }) {
@@ -102,6 +103,7 @@ export function createNewSessionComposerAdapter(props: {
     controls,
     working: () => false,
     submitted: props.submitted,
+    started: props.started,
     start(selection, submission, message) {
       const projectDirectory = props.root()
       const worktree = props.worktree()

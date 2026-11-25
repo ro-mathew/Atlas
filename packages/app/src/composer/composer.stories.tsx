@@ -1,4 +1,9 @@
-import { Show, createEffect, createMemo, on, onMount, type JSX } from "solid-js"
+import { VoiceControls } from "@/voice/controls"
+import { VoiceIndicator } from "@/voice/indicator"
+import { createVoiceCallState, transitionVoiceCall, voiceCallView, type VoiceCallEvent } from "@/voice/call-machine"
+import { ServerConnection } from "@/runtime/server/registry"
+import "@/voice/voice.css"
+import { Show, createSignal, createEffect, createMemo, on, onMount, type JSX } from "solid-js"
 import { createStore } from "solid-js/store"
 import type { ModelSelection } from "@/providers/models/selection"
 import { STORY_MODEL, emptySessionDocument, pendingAndQueuedDocument } from "@opencode/session-ui/storybook"
@@ -48,6 +53,7 @@ const selectedModel = {
 } satisfies NonNullable<ReturnType<ModelSelection["current"]>>
 
 function ComposerStory(props: {
+  voice?: { indicator: JSX.Element; controls: JSX.Element; active?: boolean }
   prompt?: ComposerPersistedState["prompt"]
   comments?: ComposerPersistedState["context"]["items"]
   working?: boolean
@@ -337,7 +343,7 @@ function ComposerStory(props: {
       <output class="text-12-regular text-text-weak" aria-live="polite">
         {story.activity}
       </output>
-      <Composer model={model} borderUnderlay suggestionBoundary={props.suggestionBoundary} />
+      <Composer model={model} voice={props.voice} borderUnderlay suggestionBoundary={props.suggestionBoundary} />
       <Show when={props.fileSearch}>
         <button
           type="button"
@@ -762,4 +768,61 @@ function SelectionPrecedenceDemo(props: FlowArgs) {
       </div>
     </DemoFrame>
   )
+}
+
+export const IntegratedVoice = {
+  render: () => {
+    const [call, setCall] = createSignal(createVoiceCallState())
+    const dispatch = (event: VoiceCallEvent) => setCall(transitionVoiceCall(call(), event).state)
+    const view = () => voiceCallView(call())
+
+    return (
+      <>
+        <ComposerStory
+          alternate="none"
+          voice={{
+            get active() {
+              return view().panelOpen
+            },
+            indicator: <VoiceIndicator view={view()} />,
+            controls: (
+              <VoiceControls
+                view={view()}
+                canStart
+                start={() =>
+                  dispatch({
+                    type: "start",
+                    server: ServerConnection.Key.make("local"),
+                    ctx: {},
+                    session: { id: "session", title: "Voice story" },
+                  })
+                }
+                silence={() => dispatch({ type: "silence.toggled" })}
+                mute={() => dispatch({ type: "mute.toggled" })}
+                end={() => {
+                  dispatch({ type: "end" })
+                  dispatch({ type: "end.settled", attempt: call().attempt })
+                }}
+                rejoin={() => dispatch({ type: "rejoin" })}
+              />
+            ),
+          }}
+        />
+        <div class="flex gap-2 mt-4">
+          <button onClick={() => dispatch({ type: "connect.succeeded", attempt: call().attempt })}>
+            Connect fixture
+          </button>
+          <button onClick={() => dispatch({ type: "level.updated", attempt: call().attempt, mic: 0.15, speaker: 0 })}>
+            User speaking
+          </button>
+          <button onClick={() => dispatch({ type: "level.updated", attempt: call().attempt, mic: 0, speaker: 0 })}>
+            Silence
+          </button>
+          <button onClick={() => dispatch({ type: "call.dropped", attempt: call().attempt, failure: "connection" })}>
+            Disconnect fixture
+          </button>
+        </div>
+      </>
+    )
+  },
 }

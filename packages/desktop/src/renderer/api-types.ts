@@ -1,4 +1,5 @@
 import type { DesktopMenuAction, DesktopZoomLevel } from "@opencode/app/desktop-menu"
+import type { VoiceBridge } from "@opencode/app/desktop"
 import type { DesktopNativeBundle } from "@opencode/app/i18n/desktop-native"
 import type { StorageSnapshot } from "../shared/ipc-transport"
 import type { WindowBootstrap } from "../shared/window-bootstrap"
@@ -15,6 +16,7 @@ import type {
 } from "../shared/ipc-contract"
 
 export type ElectronAPI = {
+  voice: VoiceBridge
   awaitInitialization(): Promise<ServerReadyData>
   reconnectService(signal?: AbortSignal): Promise<ServerReadyData>
   onSidecarChanged(cb: (data: ServerReadyData) => void): () => void

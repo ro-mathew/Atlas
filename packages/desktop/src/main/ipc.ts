@@ -15,6 +15,7 @@ import { fileHandlers } from "./ipc-handlers/files"
 import { menuHandlers } from "./ipc-handlers/menu"
 import { storageHandlers } from "./ipc-handlers/storage"
 import { windowHandlers } from "./ipc-handlers/window"
+import { voiceHandlers } from "./ipc-handlers/voice"
 import { IpcPortHandoff, IpcServerProtocolLive } from "./ipc-transport"
 import { ApplicationLifecycle } from "./lifecycle"
 import { createCliInstaller } from "./native/install-cli"
@@ -30,6 +31,7 @@ import { receivesPluginPort } from "./windows/security"
 const services = Layer.mergeAll(DesktopFiles.layer, Plugins.layer)
 
 const handlers = Layer.mergeAll(
+  voiceHandlers,
   appHandlers,
   storageHandlers,
   fileHandlers,

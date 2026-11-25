@@ -2266,7 +2266,9 @@ export type GenerateDecisionAnswer =
   | GenerateScoreAnswer
   | GenerateErrorAnswer
 
-export type VoiceModelsResponse = { data: { models: Array<VoiceModel>; default?: string | undefined } }
+export type VoiceModelsResponse = {
+  data: { models: Array<VoiceModel>; enabled?: boolean | undefined; default?: string | undefined }
+}
 
 export type VoiceSessionResponse = { data: { transport: VoiceTransport } }
 
@@ -2664,6 +2666,7 @@ export type ConfigEntry =
           portable_shell_scanner?: boolean
           codemode_vm?: boolean
           all_flags?: boolean
+          voice_calls?: boolean
           todo?: boolean
           media_blob?: boolean
           artifacts?: boolean

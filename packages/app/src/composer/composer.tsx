@@ -1,4 +1,4 @@
-import { Show, createEffect, createMemo, createSignal, onCleanup, untrack } from "solid-js"
+import { type JSX, Show, createEffect, createMemo, createSignal, onCleanup, untrack } from "solid-js"
 import { makeEventListener } from "@solid-primitives/event-listener"
 import { createMediaQuery } from "@solid-primitives/media"
 import { Button } from "@opencode/ui/button"
@@ -23,6 +23,7 @@ import {
 
 export function Composer(props: {
   class?: string
+  voice?: { indicator: JSX.Element; controls: JSX.Element; active?: boolean }
   model: ComposerModel
   borderUnderlay?: boolean
   readOnly?: boolean
@@ -59,7 +60,10 @@ export function Composer(props: {
 
   return (
     <div class="flex flex-col gap-3">
+      {props.voice?.indicator}
       <ComposerEditor
+        actions={props.voice?.controls}
+        suppressEmptySubmit={props.voice?.active}
         controller={props.model}
         borderUnderlay={props.borderUnderlay}
         readOnly={props.readOnly}

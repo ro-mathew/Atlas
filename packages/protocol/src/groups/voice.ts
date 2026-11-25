@@ -25,10 +25,9 @@ export const VoiceWebSocketTransportInput = Schema.Struct({
   type: Schema.Literal("websocket"),
 }).annotate({ identifier: "VoiceWebSocketTransportInput" })
 
-export const VoiceTransportInput = Schema.Union([
-  VoiceWebRTCTransportInput,
-  VoiceWebSocketTransportInput,
-]).annotate({ identifier: "VoiceTransportInput" })
+export const VoiceTransportInput = Schema.Union([VoiceWebRTCTransportInput, VoiceWebSocketTransportInput]).annotate({
+  identifier: "VoiceTransportInput",
+})
 
 export const VoiceWebRTCTransport = Schema.Struct({
   type: Schema.Literal("webrtc"),
@@ -42,10 +41,9 @@ export const VoiceWebSocketTransport = Schema.Struct({
   expiresAt: Schema.Number,
 }).annotate({ identifier: "VoiceWebSocketTransport" })
 
-export const VoiceTransport = Schema.Union([
-  VoiceWebRTCTransport,
-  VoiceWebSocketTransport,
-]).annotate({ identifier: "VoiceTransport" })
+export const VoiceTransport = Schema.Union([VoiceWebRTCTransport, VoiceWebSocketTransport]).annotate({
+  identifier: "VoiceTransport",
+})
 
 export const VoiceGroup = HttpApiGroup.make("server.voice")
   .add(
@@ -53,6 +51,7 @@ export const VoiceGroup = HttpApiGroup.make("server.voice")
       success: Schema.Struct({
         data: Schema.Struct({
           models: Schema.Array(VoiceModel),
+          enabled: Schema.optional(Schema.Boolean),
           default: Schema.optional(Schema.String),
         }),
       }).annotate({ identifier: "VoiceModelsResponse" }),
@@ -62,7 +61,7 @@ export const VoiceGroup = HttpApiGroup.make("server.voice")
         identifier: "experimental.voice.models",
         summary: "List voice models",
         description:
-          "List supported voice models, their transports, and whether the server has a usable API key for each provider.",
+          "Experimental: may change without compatibility guarantees. List supported voice models, their transports, availability, and whether the realtime voice feature is enabled.",
       }),
     ),
   )
@@ -84,7 +83,7 @@ export const VoiceGroup = HttpApiGroup.make("server.voice")
         identifier: "experimental.voice.session",
         summary: "Create voice session",
         description:
-          "Create a server-brokered voice session using the server's configured provider credentials and return the WebRTC SDP answer or WebSocket ephemeral token.",
+          "Experimental: may change without compatibility guarantees. Create a server-brokered voice session using the server's configured provider credentials and return the WebRTC SDP answer or WebSocket ephemeral token.",
       }),
     ),
   )

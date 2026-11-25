@@ -2,23 +2,20 @@ import type { OpenCodeClient } from "@opencode/client/promise"
 import { uuid } from "@opencode/util/uuid"
 import { decodeEvent, type VoiceEvent } from "./protocol"
 import { delegatorInstructions, liveInstructions, tools } from "./spec"
+import { VoiceFailure } from "./failure"
+
+export { VoiceFailure } from "./failure"
+
 import {
   canJoinVoiceTransport,
   canSendVoiceTransport,
   createVoiceTransportState,
   isAcquiringMicVoiceTransport,
   transitionVoiceTransport,
-  type VoiceJoinFailure,
   type VoiceJoinTarget,
   type VoiceTransportEffect,
   type VoiceTransportEvent,
 } from "./transport-machine"
-
-export class VoiceFailure extends Error {
-  constructor(readonly reason: VoiceJoinFailure | "dropped") {
-    super(reason)
-  }
-}
 
 /** A client event sent over the Live data channel; the transport adds `event_id`. */
 export type VoiceClientEvent =

@@ -3,6 +3,7 @@ import type { useLanguage } from "@/runtime/i18n/language"
 import type { SettingsRootTab } from "./surface"
 
 export const pageIcons = {
+  voice: "volume-high",
   general: "sliders",
   appearance: "appearance",
   notifications: "notifications",
@@ -18,6 +19,7 @@ export const pageIcons = {
 } as const satisfies Record<SettingsRootTab, IconProps["name"]>
 
 export const pageLabels = {
+  voice: "settings.voice.title",
   general: "settings.tab.preferences",
   appearance: "settings.general.section.appearance",
   notifications: "settings.tab.notifications",

@@ -7,6 +7,9 @@ export default {
   "usage.view": "View context usage",
   "usage.toggle": "Toggle session context",
   "rawMessages.title": "Raw messages",
+  "activity.title": "Client activity",
+  "activity.description":
+    "Recent operations in this window, separate from conversation context and token totals. Hidden filler transcripts and credentials are omitted.",
   "export.session": "Export session",
   "stats.session": "Session",
   "stats.messages": "Messages",

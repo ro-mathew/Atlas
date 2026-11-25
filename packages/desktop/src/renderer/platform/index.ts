@@ -20,6 +20,7 @@ export function createDesktopPlatform(api: ElectronAPI, windowState: DesktopWind
 
   return {
     platform: "desktop",
+    voice: api.voice,
     os,
     version: windowState.version,
     windowID: windowState.id,

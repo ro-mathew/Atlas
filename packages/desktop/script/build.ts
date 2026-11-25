@@ -16,6 +16,8 @@ const channel = resolveChannel()
 
 process.chdir(dir)
 
+await $`bun ./voice/build.ts`
+
 await $`bun ./script/copy-icons.ts ${channel}`
 
 await $`bun ./script/copy-metainfo.ts ${channel}`

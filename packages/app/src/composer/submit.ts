@@ -284,7 +284,8 @@ export function createComposerSubmit(input: ComposerSubmitInput) {
             preserveDraft: options?.preserveDraft ?? false,
           }),
       }).then(
-        (started) =>
+        (started) => {
+          if (started && input.adapter.kind === "new-session") input.adapter.started?.(started.session)
           dispatch(
             started
               ? {
@@ -296,7 +297,8 @@ export function createComposerSubmit(input: ComposerSubmitInput) {
                   complete: started.complete,
                 }
               : { type: "submit.aborted", attempt: effect.attempt },
-          ),
+          )
+        },
         (error) => {
           dispatch({ type: "submit.aborted", attempt: effect.attempt })
           throw error
@@ -373,6 +375,34 @@ export function createComposerSubmit(input: ComposerSubmitInput) {
           type: "submit",
           snapshot: snapshot(input, options?.alternate ?? false, options?.first),
           done: () => resolve(),
+        }),
+      )
+    },
+    submitVoice(text: string, base = input.adapter.state.current()) {
+      const captured = snapshot(input, false)
+      const prompt: Prompt = [{ type: "text", content: text, start: 0, end: text.length }]
+
+      return new Promise<{ id: string; sent: boolean }>((resolve) =>
+        dispatch({
+          type: "submit",
+          snapshot: {
+            ...captured,
+            draft: {
+              ...captured.draft,
+              isolated: { shown: input.adapter.state.current(), base },
+              prompt,
+              context: [],
+              sources: [],
+            },
+            text,
+            mode: "normal",
+            loading: false,
+            comments: [],
+            retry: undefined,
+            commands: [],
+            clientCommand: undefined,
+          },
+          done: (sent) => resolve({ id: captured.id, sent }),
         }),
       )
     },
@@ -501,11 +531,28 @@ function clearSubmission(
   gate: Gate | undefined,
 ) {
   const held = effect.cleared
-  const clear = held ? undefined : clearComposer(input, effect.draft, effect.kind.type)
+
+  if (effect.draft.isolated) input.adapter.submitted()
+  const clear = held || effect.draft.isolated ? undefined : clearComposer(input, effect.draft, effect.kind.type)
 
   // A held prompt cleared the composer at Enter, so what it goes back to is read only once the send fails. A
   // cancelled send comes back as a cancelled hold does: in front of a draft typed since, not dropped for it.
   const restore = (cancelled: boolean) => {
+    if (effect.draft.isolated) {
+      const target = effect.draft.target
+      const isolated = effect.draft.isolated
+
+      if (target.current() !== isolated.shown && JSON.stringify(target.current()) !== JSON.stringify(isolated.base))
+        return false
+
+      const prompt =
+        target.current() === isolated.shown ? [...isolated.shown] : appendPrompt(isolated.base, effect.draft.prompt)
+
+      target.set(prompt, promptLength(prompt))
+
+      return true
+    }
+
     const cleared = cancelled ? (clear?.cleared ?? held) : held
     const back = cleared ? afterHold(effect.draft, cleared) : clear
 

@@ -1571,6 +1571,7 @@ export type ExperimentalVoiceModelsOutput = {
     readonly transports: ReadonlyArray<"webrtc" | "websocket">
     readonly available: boolean
   }>
+  readonly enabled?: boolean | undefined
   readonly default?: string | undefined
 }
 export type ExperimentalVoiceModelsOperation<E = never> = () => Effect.Effect<ExperimentalVoiceModelsOutput, E>

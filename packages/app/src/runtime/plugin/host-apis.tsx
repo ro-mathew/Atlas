@@ -35,7 +35,13 @@ import {
   type StorageScope,
   type Tabs,
 } from "@opencode/plugin/gui"
-import { BuiltinPanel, BuiltinPromptGate, type BuiltinOpenOptions, type BuiltinStoreFrom, type BuiltinStoreOptions } from "@opencode/plugin/gui/builtin"
+import {
+  BuiltinPanel,
+  BuiltinPromptGate,
+  type BuiltinOpenOptions,
+  type BuiltinStoreFrom,
+  type BuiltinStoreOptions,
+} from "@opencode/plugin/gui/builtin"
 import { usePlatform } from "@/runtime/platform/platform"
 import { startDragOut } from "@/runtime/platform/drag-out"
 import { same } from "@/runtime/persistence/equality"
@@ -98,6 +104,7 @@ import {
   storeName,
 } from "./stores"
 import { ui } from "./ui"
+import { createClientDiagnostics } from "./diagnostics"
 
 type Attached = {
   sessions: Accessor<readonly SessionRef[]>
@@ -134,6 +141,7 @@ type Attached = {
  * their documented defaults and their writes wait, then apply in call order.
  */
 export function createHostApis() {
+  const diagnostics = createClientDiagnostics()
   const platform = usePlatform()
   const dialog = useDialog()
   const language = useLanguage()
@@ -395,6 +403,7 @@ export function createHostApis() {
       list: () => current()?.sessions() ?? [],
       current: () => current()?.current(),
     }),
+    diagnostics: () => ({ list: diagnostics.list }),
     // Before the interface mounts, no tabs are listed and writes wait for it.
     tabs: () => ({
       list: () => current()?.tabs.list() ?? [],
@@ -494,6 +503,7 @@ export function createHostApis() {
 
   return {
     apis,
+    diagnostics,
     /**
      * Runs `run` now while the app interface is mounted and no write waits; otherwise after the interface's first
      * render, behind the writes made before it. The returned function cancels a run that still waits.
@@ -1146,7 +1156,8 @@ export function createPluginAttachment(apis: HostApis) {
     if (session) {
       await global.sessionPreferences.ready.promise
 
-      const root = global.serverCtx(ServerConnection.Key.make(session.server))?.data.session.root(session.id) ?? session.id
+      const root =
+        global.serverCtx(ServerConnection.Key.make(session.server))?.data.session.root(session.id) ?? session.id
 
       if (
         global.sessionPreferences.muted(session.server, session.id) ||
@@ -1258,7 +1269,11 @@ export function createPluginAttachment(apis: HostApis) {
 
       if (!session) return Promise.resolve()
 
-      return settlePromptGates(untrack(() => host.items(BuiltinPromptGate)), host.builtin, session)
+      return settlePromptGates(
+        untrack(() => host.items(BuiltinPromptGate)),
+        host.builtin,
+        session,
+      )
     },
     closed,
     /** Opens and selects a side tab by key, as a reopened closed tab comes back. */

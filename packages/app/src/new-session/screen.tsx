@@ -1,9 +1,12 @@
+import { useVoice } from "@/voice/context"
+import { createVoiceComposerBinding } from "@/voice/input"
+import { useServer } from "@/runtime/server/current"
 import { createPromptProjectController } from "@/new-session/project/selector"
 import { useNewSessionLocationDialog } from "@/new-session/location/dialog"
 import { useTabs, type DraftTab } from "@/shell/tabs/tabs"
 import { useLayout } from "@/shell/state/layout"
 import { useSearchParams } from "@solidjs/router"
-import { createEffect, createMemo, createResource, on, untrack } from "solid-js"
+import { createEffect, createMemo, createResource, on, onCleanup, untrack } from "solid-js"
 import { createComposerModel } from "@/composer/model"
 import { useComposerCommands } from "@/composer/commands"
 import { createNewSessionComposerAdapter, createNewSessionStartStore } from "./composer-adapter"
@@ -17,6 +20,8 @@ export default function NewSessionPage(props: { draftId: string }) {
   const [search, setSearch] = useSearchParams<{ draftId?: string; prompt?: string }>()
   const tabs = useTabs()
   const layout = useLayout()
+  const voice = useVoice()
+  const server = useServer()
 
   const draftTab = createMemo(() =>
     tabs.store.find((tab): tab is DraftTab => tab.type === "draft" && tab.draftID === search.draftId),
@@ -47,11 +52,18 @@ export default function NewSessionPage(props: { draftId: string }) {
     root: workspace.project.root,
     branch: workspace.bar.branch,
     submitted: workspace.selection.remember,
+    started: (session) => voice.promoteDraft(server.key, props.draftId, session.id),
     mcp,
     start,
   })
 
   const model = createComposerModel(composer.adapter)
+  onCleanup(
+    voice.bind(
+      { server: server.key, draftID: props.draftId },
+      createVoiceComposerBinding({ draft: composer.adapter.state, submit: model.voice.submit }),
+    ),
+  )
   useComposerCommands({ model: composer.model })
 
   const project = createPromptProjectController({ controls: composer.project })
@@ -100,7 +112,13 @@ export default function NewSessionPage(props: { draftId: string }) {
     <div class="relative size-full overflow-hidden flex flex-col">
       {suspendUntilPromptReady()}
       <div class="flex-1 min-h-0 flex flex-col gap-2 px-[var(--shell-inline-inset,8px)] pb-[var(--shell-bottom-inset,8px)] pt-[var(--shell-top-inset,8px)]">
-        <NewSessionView composer={model} project={project} workspace={workspace} location={location} />
+        <NewSessionView
+          draftID={props.draftId}
+          composer={model}
+          project={project}
+          workspace={workspace}
+          location={location}
+        />
       </div>
     </div>
   )
