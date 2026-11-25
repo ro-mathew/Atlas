@@ -54,7 +54,7 @@ def main():
         # Export only indexed blobs: unstaged edits cannot conceal staged secrets.
         # Redaction prevents a rejected key from being echoed into terminal/CI logs.
         return subprocess.run([
-            "gitleaks", "dir", "--redact", "--no-banner", "--no-color",
+            "gitleaks", "dir", "--redact", "--verbose", "--no-banner", "--no-color",
             "--ignore-gitleaks-allow", directory,
         ]).returncode
 
@@ -70,6 +70,9 @@ def local_file_reason(path):
         return "local database or sidecar"
     if path.suffix.lower() in {".pem", ".key", ".p12", ".pfx"}:
         return "key or certificate bundle"
+    # This upstream parity fixture contains only synthetic tokens. Still scan its contents.
+    if path.as_posix() == "packages/cli-rs/parity/scenarios/C.5/credentials.json":
+        return None
     if name in {"auth.json", "credentials.json", "service-local.json"}:
         return "local credentials or service state"
     return None
