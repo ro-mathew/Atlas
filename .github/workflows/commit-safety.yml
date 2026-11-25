@@ -20,7 +20,7 @@ jobs:
           cache: false
       - name: Install pinned secret scanner
         run: |
-          go install github.com/gitleaks/gitleaks/v8@v8.24.2
+          go install github.com/zricethezav/gitleaks/v8@v8.24.2
           echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
       - name: Check tracked files and secrets
         run: python3 script/check-commit-safety.py --all-tracked
