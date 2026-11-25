@@ -1,3 +1,9 @@
+# Contributing to Atlas
+
+Atlas is an independently maintained OpenCode fork. Target all Atlas PRs at `main`, using short feature branches and conventional commit titles. Use merge commits for upstream sync PRs and squash merges for features. See [commit safety](COMMIT-SAFETY.md) before committing.
+
+The guidelines below describe contributing to upstream OpenCode; its design approvals and issue-link requirements apply to upstream submissions.
+
 # Contributing to OpenCode
 
 The changes most likely to be accepted are:

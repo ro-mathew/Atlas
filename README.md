@@ -1,3 +1,30 @@
+# Atlas
+
+Atlas is a personal fork of [OpenCode](https://github.com/anomalyco/opencode), focused on custom desktop workflows and realtime voice.
+
+Atlas is independently maintained and is not affiliated with the OpenCode team. Realtime voice is under development. The application currently retains upstream OpenCode branding.
+
+## Develop Atlas
+
+Use the Bun version specified in `package.json` or newer:
+
+```bash
+git clone https://github.com/ro-mathew/Atlas.git
+cd Atlas
+bun install
+bun run dev:desktop
+```
+
+See the [desktop development guide](packages/desktop/README.md) for build details and [commit safety guide](COMMIT-SAFETY.md) for local-file protections and secret-scanning setup.
+
+Atlas retains OpenCode's [MIT licence](LICENSE) and original copyright notices. Third-party components retain their own licences.
+
+## Upstream OpenCode documentation
+
+The documentation, translations, badges and download links below describe the upstream OpenCode project. Installation commands and desktop downloads install official OpenCode, not Atlas. The upstream release badge does not report Atlas's build status.
+
+---
+
 <p align="center">
   <a href="https://opencode.ai">
     <picture>
@@ -11,32 +38,32 @@
 <p align="center">
   <a href="https://opencode.ai/discord"><img alt="Discord" src="https://img.shields.io/discord/1391832426048651334?style=flat-square&label=discord" /></a>
   <a href="https://www.npmjs.com/package/@opencode/cli"><img alt="npm" src="https://img.shields.io/npm/v/@opencode/cli?style=flat-square" /></a>
-  <a href="https://github.com/anomalyco/opencode/actions/workflows/release.yml"><img alt="Build status" src="https://img.shields.io/github/actions/workflow/status/anomalyco/opencode/release.yml?style=flat-square&branch=dev" /></a>
+  <a href="https://github.com/anomalyco/opencode/actions/workflows/release.yml"><img alt="Upstream OpenCode release status" src="https://img.shields.io/github/actions/workflow/status/anomalyco/opencode/release.yml?style=flat-square&branch=dev&label=upstream%20release" /></a>
 </p>
 
 <p align="center">
-  <a href="README.md">English</a> |
-  <a href="README.zh.md">简体中文</a> |
-  <a href="README.zht.md">繁體中文</a> |
-  <a href="README.ko.md">한국어</a> |
-  <a href="README.de.md">Deutsch</a> |
-  <a href="README.es.md">Español</a> |
-  <a href="README.fr.md">Français</a> |
-  <a href="README.it.md">Italiano</a> |
-  <a href="README.da.md">Dansk</a> |
-  <a href="README.ja.md">日本語</a> |
-  <a href="README.pl.md">Polski</a> |
-  <a href="README.ru.md">Русский</a> |
-  <a href="README.bs.md">Bosanski</a> |
-  <a href="README.ar.md">العربية</a> |
-  <a href="README.no.md">Norsk</a> |
-  <a href="README.br.md">Português (Brasil)</a> |
-  <a href="README.th.md">ไทย</a> |
-  <a href="README.tr.md">Türkçe</a> |
-  <a href="README.uk.md">Українська</a> |
-  <a href="README.bn.md">বাংলা</a> |
-  <a href="README.gr.md">Ελληνικά</a> |
-  <a href="README.vi.md">Tiếng Việt</a>
+  <a href="https://github.com/anomalyco/opencode/blob/dev/README.md">English</a> |
+  <a href="https://github.com/anomalyco/opencode/blob/dev/README.zh.md">简体中文</a> |
+  <a href="https://github.com/anomalyco/opencode/blob/dev/README.zht.md">繁體中文</a> |
+  <a href="https://github.com/anomalyco/opencode/blob/dev/README.ko.md">한국어</a> |
+  <a href="https://github.com/anomalyco/opencode/blob/dev/README.de.md">Deutsch</a> |
+  <a href="https://github.com/anomalyco/opencode/blob/dev/README.es.md">Español</a> |
+  <a href="https://github.com/anomalyco/opencode/blob/dev/README.fr.md">Français</a> |
+  <a href="https://github.com/anomalyco/opencode/blob/dev/README.it.md">Italiano</a> |
+  <a href="https://github.com/anomalyco/opencode/blob/dev/README.da.md">Dansk</a> |
+  <a href="https://github.com/anomalyco/opencode/blob/dev/README.ja.md">日本語</a> |
+  <a href="https://github.com/anomalyco/opencode/blob/dev/README.pl.md">Polski</a> |
+  <a href="https://github.com/anomalyco/opencode/blob/dev/README.ru.md">Русский</a> |
+  <a href="https://github.com/anomalyco/opencode/blob/dev/README.bs.md">Bosanski</a> |
+  <a href="https://github.com/anomalyco/opencode/blob/dev/README.ar.md">العربية</a> |
+  <a href="https://github.com/anomalyco/opencode/blob/dev/README.no.md">Norsk</a> |
+  <a href="https://github.com/anomalyco/opencode/blob/dev/README.br.md">Português (Brasil)</a> |
+  <a href="https://github.com/anomalyco/opencode/blob/dev/README.th.md">ไทย</a> |
+  <a href="https://github.com/anomalyco/opencode/blob/dev/README.tr.md">Türkçe</a> |
+  <a href="https://github.com/anomalyco/opencode/blob/dev/README.uk.md">Українська</a> |
+  <a href="https://github.com/anomalyco/opencode/blob/dev/README.bn.md">বাংলা</a> |
+  <a href="https://github.com/anomalyco/opencode/blob/dev/README.gr.md">Ελληνικά</a> |
+  <a href="https://github.com/anomalyco/opencode/blob/dev/README.vi.md">Tiếng Việt</a>
 </p>
 
 [![OpenCode Terminal UI](services/site/public/v1/docs/assets/lander/screenshot.png)](https://opencode.ai)
