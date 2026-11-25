@@ -55,7 +55,7 @@ def main():
         # Redaction prevents a rejected key from being echoed into terminal/CI logs.
         return subprocess.run([
             "gitleaks", "dir", "--redact", "--verbose", "--no-banner", "--no-color",
-            "--ignore-gitleaks-allow", directory,
+            "--config", ".gitleaks.toml", "--ignore-gitleaks-allow", directory,
         ]).returncode
 
 
