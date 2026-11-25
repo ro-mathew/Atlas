@@ -1,0 +1,201 @@
+# Reviewed upstream false positives only; never exempt entire source/test trees.
+[extend]
+useDefault = true
+
+[[rules]]
+id = "generic-api-key"
+
+[[rules.allowlists]]
+description = "Base64 encoding alphabet in the vendored Draco decoder"
+condition = "AND"
+regexTarget = "match"
+paths = ['services/site/public/arcade3d/draco/draco_decoder[.]js$']
+regexes = ['^keyStr="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789\+/="$']
+
+[[rules.allowlists]]
+description = "Exact reviewed upstream source or synthetic fixture line"
+condition = "AND"
+regexTarget = "line"
+paths = ["(?:^|/)packages/app/src/runtime/i18n/language\\.tsx$"]
+regexes = ["(?m)^type\\ PluralKey\\ =\\ AppI18nPluralKey\\ \\|\\ UiI18nPluralKey$"]
+
+[[rules.allowlists]]
+description = "Exact reviewed upstream source or synthetic fixture line"
+condition = "AND"
+regexTarget = "line"
+paths = ["(?:^|/)packages/app/src/shell/titlebar/tab\\-strip\\.tsx$"]
+regexes = ["(?m)^\\ \\ \\ \\ \\ \\ keybind:\\ \"shift\\+alt\\+arrowdown\",$", "(?m)^\\ \\ \\ \\ \\ \\ keybind:\\ \"shift\\+alt\\+arrowup\",$"]
+
+[[rules.allowlists]]
+description = "Exact reviewed upstream source or synthetic fixture line"
+condition = "AND"
+regexTarget = "line"
+paths = ["(?:^|/)packages/cli\\-rs/crates/api/tests/all/api\\.rs$"]
+regexes = ["(?m)^\\ \\ \\ \\ assert_eq!\\(request\\.url\\.query\\(\\),\\ Some\\(\"auth_token=b3BlbmNvZGU6c2VjcmV0\"\\)\\);$"]
+
+[[rules.allowlists]]
+description = "Exact reviewed upstream source or synthetic fixture line"
+condition = "AND"
+regexTarget = "line"
+paths = ["(?:^|/)packages/http\\-recorder/test/redaction\\.test\\.ts$"]
+regexes = ["(?m)^\\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ url:\\ \"https://example\\.test/path\\?key=sk\\-123456789012345678901234\",$", "(?m)^\\ \\ \\ \\ \\ \\ \\ \\ metadata:\\ \\{\\ token:\\ \"sk\\-123456789012345678901234\"\\ \\},$"]
+
+[[rules.allowlists]]
+description = "Exact reviewed upstream source or synthetic fixture line"
+condition = "AND"
+regexTarget = "line"
+paths = ["(?:^|/)packages/http\\-recorder/test/http\\.test\\.ts$"]
+regexes = ["(?m)^\\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ token:\\ \"sk\\-123456789012345678901234\",$"]
+
+[[rules.allowlists]]
+description = "Exact reviewed upstream source or synthetic fixture line"
+condition = "AND"
+regexTarget = "line"
+paths = ["(?:^|/)packages/server/test/machine\\-link\\.test\\.ts$"]
+regexes = ["(?m)^\\ \\ \"Sec\\-WebSocket\\-Key\":\\ \"dGhlIHNhbXBsZSBub25jZQ==\",$"]
+
+[[rules.allowlists]]
+description = "Exact reviewed upstream source or synthetic fixture line"
+condition = "AND"
+regexTarget = "line"
+paths = ["(?:^|/)packages/session\\-ui/src/components/tool\\-count\\-summary\\.tsx$"]
+regexes = ["(?m)^\\ \\ key:\\ UiI18nPluralKey$"]
+
+[[rules.allowlists]]
+description = "Exact reviewed upstream source or synthetic fixture line"
+condition = "AND"
+regexTarget = "line"
+paths = ["(?:^|/)packages/tui/test/config\\.test\\.tsx$"]
+regexes = ["(?m)^\\ \\ expect\\(config\\.keybinds\\.get\\(\"session\\.tab\\.next_unread\"\\)\\)\\.toMatchObject\\(\\[\\{\\ key:\\ \"alt\\+shift\\+down\"\\ \\}\\]\\)$"]
+
+[[rules.allowlists]]
+description = "Exact reviewed upstream source or synthetic fixture line"
+condition = "AND"
+regexTarget = "line"
+paths = ["(?:^|/)packages/tui/test/config\\-v2\\.test\\.tsx$"]
+regexes = ["(?m)^\\ \\ expect\\(config\\.keybinds\\.get\\(\"session\\.tab\\.next_unread\"\\)\\)\\.toMatchObject\\(\\[\\{\\ key:\\ \"alt\\+shift\\+down\"\\ \\}\\]\\)$"]
+
+[[rules.allowlists]]
+description = "Exact reviewed upstream source or synthetic fixture line"
+condition = "AND"
+regexTarget = "line"
+paths = ["(?:^|/)services/site/src/i18n/ar\\.ts$"]
+regexes = ["(?m)^\\ \\ \"go\\.faq\\.a5\\.grokRetention\":\\ \"تعطّل\\ ZDR\\ ميزات\\ API\\ مهمة\\ تعتمد\\ على\\ البيانات\\ المخزنة،\\ بما\\ في\\ ذلك\\ Responses\\ API\\ ذات\\ الحالة،\\ وFiles\\ and\\ Collections،\\ وBatch\\ API\\.\",$"]
+
+[[rules.allowlists]]
+description = "Exact reviewed upstream source or synthetic fixture line"
+condition = "AND"
+regexTarget = "line"
+paths = ["(?:^|/)services/site/src/i18n/br\\.ts$"]
+regexes = ["(?m)^\\ \\ \"go\\.faq\\.a5\\.grokRetention\":\\ \"O\\ ZDR\\ desativa\\ recursos\\ importantes\\ da\\ API\\ que\\ dependem\\ de\\ dados\\ armazenados,\\ incluindo\\ a\\ Responses\\ API\\ com\\ estado,\\ Files\\ and\\ Collections\\ e\\ a\\ Batch\\ API\\.\",$"]
+
+[[rules.allowlists]]
+description = "Exact reviewed upstream source or synthetic fixture line"
+condition = "AND"
+regexTarget = "line"
+paths = ["(?:^|/)services/site/src/i18n/da\\.ts$"]
+regexes = ["(?m)^\\ \\ \"go\\.faq\\.a5\\.grokRetention\":\\ \"ZDR\\ deaktiverer\\ vigtige\\ API\\-funktioner,\\ der\\ afhænger\\ af\\ lagrede\\ data,\\ herunder\\ den\\ tilstandsbevarende\\ Responses\\ API,\\ Files\\ and\\ Collections\\ og\\ Batch\\ API\\.\",$"]
+
+[[rules.allowlists]]
+description = "Exact reviewed upstream source or synthetic fixture line"
+condition = "AND"
+regexTarget = "line"
+paths = ["(?:^|/)services/site/src/i18n/de\\.ts$"]
+regexes = ["(?m)^\\ \\ \"go\\.faq\\.a5\\.grokRetention\":\\ \"ZDR\\ deaktiviert\\ wichtige\\ API\\-Funktionen,\\ die\\ von\\ gespeicherten\\ Daten\\ abhängen,\\ einschließlich\\ der\\ zustandsbehafteten\\ Responses\\ API,\\ Files\\ and\\ Collections\\ und\\ der\\ Batch\\ API\\.\",$"]
+
+[[rules.allowlists]]
+description = "Exact reviewed upstream source or synthetic fixture line"
+condition = "AND"
+regexTarget = "line"
+paths = ["(?:^|/)services/site/src/i18n/en\\.ts$"]
+regexes = ["(?m)^\\ \\ \"go\\.faq\\.a5\\.grokRetention\":\\ \"ZDR\\ disables\\ important\\ API\\ features\\ that\\ depend\\ on\\ stored\\ data,\\ including\\ the\\ stateful\\ Responses\\ API,\\ Files\\ and\\ Collections,\\ and\\ the\\ Batch\\ API\\.\",$"]
+
+[[rules.allowlists]]
+description = "Exact reviewed upstream source or synthetic fixture line"
+condition = "AND"
+regexTarget = "line"
+paths = ["(?:^|/)services/site/src/i18n/fr\\.ts$"]
+regexes = ["(?m)^\\ \\ \"go\\.faq\\.a5\\.grokRetention\":\\ \"Le\\ ZDR\\ désactive\\ d'importantes\\ fonctionnalités\\ API\\ qui\\ dépendent\\ des\\ données\\ stockées,\\ notamment\\ Responses\\ API\\ avec\\ état,\\ Files\\ and\\ Collections\\ et\\ Batch\\ API\\.\",$"]
+
+[[rules.allowlists]]
+description = "Exact reviewed upstream source or synthetic fixture line"
+condition = "AND"
+regexTarget = "line"
+paths = ["(?:^|/)services/site/src/i18n/es\\.ts$"]
+regexes = ["(?m)^\\ \\ \"go\\.faq\\.a5\\.grokRetention\":\\ \"ZDR\\ deshabilita\\ funciones\\ importantes\\ de\\ la\\ API\\ que\\ dependen\\ de\\ datos\\ almacenados,\\ incluidas\\ la\\ Responses\\ API\\ con\\ estado,\\ Files\\ and\\ Collections\\ y\\ la\\ Batch\\ API\\.\",$"]
+
+[[rules.allowlists]]
+description = "Exact reviewed upstream source or synthetic fixture line"
+condition = "AND"
+regexTarget = "line"
+paths = ["(?:^|/)services/site/src/i18n/pl\\.ts$"]
+regexes = ["(?m)^\\ \\ \"go\\.faq\\.a5\\.grokRetention\":\\ \"ZDR\\ wyłącza\\ ważne\\ funkcje\\ API\\ zależne\\ od\\ przechowywanych\\ danych,\\ w\\ tym\\ stanowy\\ Responses\\ API,\\ Files\\ and\\ Collections\\ oraz\\ Batch\\ API\\.\",$"]
+
+[[rules.allowlists]]
+description = "Exact reviewed upstream source or synthetic fixture line"
+condition = "AND"
+regexTarget = "line"
+paths = ["(?:^|/)services/site/src/i18n/it\\.ts$"]
+regexes = ["(?m)^\\ \\ \"go\\.faq\\.a5\\.grokRetention\":\\ \"ZDR\\ disabilita\\ importanti\\ funzionalità\\ API\\ che\\ dipendono\\ dai\\ dati\\ archiviati,\\ tra\\ cui\\ la\\ Responses\\ API\\ con\\ stato,\\ Files\\ and\\ Collections\\ e\\ Batch\\ API\\.\",$"]
+
+[[rules.allowlists]]
+description = "Exact reviewed upstream source or synthetic fixture line"
+condition = "AND"
+regexTarget = "line"
+paths = ["(?:^|/)services/site/src/i18n/no\\.ts$"]
+regexes = ["(?m)^\\ \\ \"go\\.faq\\.a5\\.grokRetention\":\\ \"ZDR\\ deaktiverer\\ viktige\\ API\\-funksjoner\\ som\\ er\\ avhengige\\ av\\ lagrede\\ data,\\ inkludert\\ den\\ tilstandsbaserte\\ Responses\\ API,\\ Files\\ and\\ Collections\\ og\\ Batch\\ API\\.\",$"]
+
+[[rules.allowlists]]
+description = "Exact reviewed upstream source or synthetic fixture line"
+condition = "AND"
+regexTarget = "line"
+paths = ["(?:^|/)services/site/src/i18n/ru\\.ts$"]
+regexes = ["(?m)^\\ \\ \"go\\.faq\\.a5\\.grokRetention\":\\ \"ZDR\\ отключает\\ важные\\ функции\\ API,\\ зависящие\\ от\\ сохраненных\\ данных,\\ включая\\ Responses\\ API\\ с\\ сохранением\\ состояния,\\ Files\\ and\\ Collections\\ и\\ Batch\\ API\\.\",$"]
+
+[[rules.allowlists]]
+description = "Exact reviewed upstream source or synthetic fixture line"
+condition = "AND"
+regexTarget = "line"
+paths = ["(?:^|/)services/site/src/i18n/th\\.ts$"]
+regexes = ["(?m)^\\ \\ \"go\\.faq\\.a5\\.grokRetention\":\\ \"ZDR\\ ปิดใช้งานฟีเจอร์\\ API\\ สำคัญที่ต้องอาศัยข้อมูลที่จัดเก็บไว้\\ ซึ่งรวมถึง\\ Responses\\ API\\ แบบมีสถานะ,\\ Files\\ and\\ Collections\\ และ\\ Batch\\ API\",$"]
+
+[[rules.allowlists]]
+description = "Exact reviewed upstream source or synthetic fixture line"
+condition = "AND"
+regexTarget = "line"
+paths = ["(?:^|/)services/site/src/i18n/uk\\.ts$"]
+regexes = ["(?m)^\\ \\ \"go\\.faq\\.a5\\.grokRetention\":\\ \"ZDR\\ вимикає\\ важливі\\ функції\\ API,\\ які\\ залежать\\ від\\ збережених\\ даних,\\ зокрема\\ Responses\\ API\\ зі\\ збереженням\\ стану,\\ Files\\ and\\ Collections\\ та\\ Batch\\ API\\.\",$"]
+
+[[rules.allowlists]]
+description = "Exact reviewed upstream source or synthetic fixture line"
+condition = "AND"
+regexTarget = "line"
+paths = ["(?:^|/)services/update/src/index\\.ts$"]
+regexes = ["(?m)^const\\ accessAudience\\ =\\ \"d369a93ad5ce8cf96eebe30620488dd2537427c92fed439c310288832a282987\"$"]
+
+[[rules.allowlists]]
+description = "Recorded Anthropic message identifiers, not authentication tokens"
+condition = "AND"
+regexTarget = "match"
+paths = ['packages/core/test/plugin/provider/claude-agent/fixtures/recordings/[^/]+[.]jsonl$']
+regexes = ['^api_message_id":"msg_[A-Za-z0-9]{24}"$']
+
+[[rules]]
+id = "gcp-api-key"
+
+[[rules.allowlists]]
+description = "Exact reviewed upstream source or synthetic fixture line"
+condition = "AND"
+regexTarget = "line"
+paths = ["(?:^|/)packages/http\\-recorder/test/redaction\\.test\\.ts$"]
+regexes = ["(?m)^\\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ \\ nested:\\ \"AIzaSyDHibiBRvJZLsFnPYPoiTwxY4ztQ55yqCE\",$"]
+
+[[rules]]
+id = "curl-auth-user"
+
+[[rules.allowlists]]
+description = "Exact reviewed upstream source or synthetic fixture line"
+condition = "AND"
+regexTarget = "line"
+paths = ["(?:^|/)services/site/src/docs/content/cli/web\\.mdx$"]
+regexes = ["(?m)^\\$\\ curl\\ \\-u\\ opencode:a\\-long\\-secret\\ http://127\\.0\\.0\\.1:4096/api/info$"]

@@ -1,7 +1,9 @@
 - After changing the public Protocol or Server `HttpApi`, run `bun run generate` from `packages/client`. Do not edit generated client files directly.
 - Keep runtime dependencies directed from Schema to Core and Protocol, then from Core and Protocol to Server. Client runtime code may depend on Schema and Protocol but never Core or Server; `sdk` composes Client, Core, and Server.
 - This repository does not use Changesets. Do not add `.changeset` files; follow the existing release workflow instead.
-- The default branch is `dev`. Base branches and worktrees on `origin/dev`, target PRs at `dev`, and diff against `origin/dev` unless told otherwise.
+- Atlas uses `main` as its default branch. Base feature branches on `origin/main`, target PRs at `main`, and diff against `origin/main`. `origin` is `ro-mathew/Atlas`; `upstream` is `anomalyco/opencode`.
+- Bring upstream updates into `main` through an `upstream-sync` PR. Use a merge commit for upstream syncs to preserve ancestry; squash feature PRs with conventional commit titles.
+- Run `python3 script/check-commit-safety.py` before committing. Keep credentials, databases, runtime state and local projects out of Git.
 
 ## Live TUI Testing
 
