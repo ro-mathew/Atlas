@@ -6,6 +6,13 @@ useDefault = true
 id = "generic-api-key"
 
 [[rules.allowlists]]
+description = "Base64 encoding alphabet in the vendored Draco decoder"
+condition = "AND"
+regexTarget = "match"
+paths = ['services/site/public/arcade3d/draco/draco_decoder[.]js$']
+regexes = ['^keyStr="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789\+/="$']
+
+[[rules.allowlists]]
 description = "Exact reviewed upstream source or synthetic fixture line"
 condition = "AND"
 regexTarget = "line"
